@@ -12,7 +12,7 @@
           "simulator":true
         },
         "android":{
-          "buildType":"apk",
+          "buildType":"aab",
           "gradleCommand": ":app:assembleRelease"
         }
       },
