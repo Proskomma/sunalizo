@@ -35,4 +35,4 @@ yarn-error.*
 *.tsbuildinfo
 
 #todo
-.todo
+.todo.txt

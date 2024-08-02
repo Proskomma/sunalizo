@@ -1,11 +1,11 @@
 import React from "react";
 import { SvgXml } from "react-native-svg";
 
-export default function AddResourcesIcon({ color = "black" }) {
+export default function AddResourcesIcon({ color = "black",height=24 }) {
   const svgMarkup = `
     <svg
-      width="24"
-      height="24"
+      width="${height}"
+      height="${height}"
       viewBox="0 0 24 24"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"

@@ -26,6 +26,7 @@
     "react-native": "^0.74.2",
     "react-native-animated-splash-screen": "^2.0.5",
     "react-native-awesome-slider": "^2.5.3",
+    "react-native-draggable-flatlist": "^4.0.1",
     "react-native-element-dropdown": "^2.12.1",
     "react-native-exit-app": "^2.0.0",
     "react-native-gesture-handler": "~2.16.1",
