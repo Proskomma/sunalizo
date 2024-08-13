@@ -294,7 +294,6 @@ function ConvertCssToReactNativeStyleOnFloor(
   let fontFamily = `${fontFamil}`;
   let values = Object.values(copyStyleSheet);
   let keys = Object.keys(copyStyleSheet);
-
   if (keys.includes("fontStyle") || keys.includes("fontWeight")) {
     if (!keys.includes("fontSize")) {
       copyStyleSheet["fontSize"] = "medium";
@@ -315,6 +314,7 @@ function ConvertCssToReactNativeStyleOnFloor(
     copyStyleSheet["fontFamily"] = fontFamily;
     delete copyStyleSheet["fontStyle"];
   }
+
   const thirdLayerKeysArray = Object.keys(copyStyleSheet);
 
   thirdLayerKeysArray.map((thirdLayerKey) => {
@@ -361,7 +361,7 @@ function ConvertCssToReactNativeStyleOnFloor(
     if (copyStyleSheet[thirdLayerKey] === "xx-small") {
       copyStyleSheet[thirdLayerKey] = fontSizeTab[0] * multiTab[index];
       copyStyleSheet["lineHeight"] = lineHeightTab[0] * multiTab[index];
-      copyStyleSheet["letterSpacing"] = fontSpace[0];
+      copyStyleSheet["letterSpacing"] = fontSpace[0] * multiTab[index];
       if (fontFamil) {
         copyStyleSheet["fontFamily"] = `${fontFamily}Medium`;
       }
@@ -369,7 +369,7 @@ function ConvertCssToReactNativeStyleOnFloor(
     if (copyStyleSheet[thirdLayerKey] === "x-small") {
       copyStyleSheet[thirdLayerKey] = fontSizeTab[5] * multiTab[index];
       copyStyleSheet["lineHeight"] = lineHeightTab[5] * multiTab[index];
-      copyStyleSheet["letterSpacing"] = fontSpace[5];
+      copyStyleSheet["letterSpacing"] = fontSpace[5] * multiTab[index];
       if (fontFamil) {
         copyStyleSheet["fontFamily"] = `${fontFamily}Medium`;
       }
@@ -377,7 +377,7 @@ function ConvertCssToReactNativeStyleOnFloor(
     if (copyStyleSheet[thirdLayerKey] === "small") {
       copyStyleSheet[thirdLayerKey] = fontSizeTab[0] * multiTab[index];
       copyStyleSheet["lineHeight"] = lineHeightTab[0] * multiTab[index];
-      copyStyleSheet["letterSpacing"] = fontSpace[0];
+      copyStyleSheet["letterSpacing"] = fontSpace[0] * multiTab[index];
       if (fontFamil) {
         copyStyleSheet["fontFamily"] = `${fontFamily}Regular`;
       }
@@ -385,7 +385,7 @@ function ConvertCssToReactNativeStyleOnFloor(
     if (copyStyleSheet[thirdLayerKey] === "medium") {
       copyStyleSheet[thirdLayerKey] = fontSizeTab[0] * multiTab[index];
       copyStyleSheet["lineHeight"] = lineHeightTab[0] * multiTab[index];
-      copyStyleSheet["letterSpacing"] = fontSpace[0];
+      copyStyleSheet["letterSpacing"] = fontSpace[0] * multiTab[index];
       if (fontFamil) {
         copyStyleSheet["fontFamily"] = `${fontFamily}Regular`;
       }
@@ -393,7 +393,7 @@ function ConvertCssToReactNativeStyleOnFloor(
     if (copyStyleSheet[thirdLayerKey] === "large") {
       copyStyleSheet[thirdLayerKey] = fontSizeTab[1] * multiTab[index];
       copyStyleSheet["lineHeight"] = lineHeightTab[1] * multiTab[index];
-      copyStyleSheet["letterSpacing"] = fontSpace[1];
+      copyStyleSheet["letterSpacing"] = fontSpace[1] * multiTab[index];
       if (fontFamil) {
         copyStyleSheet["fontFamily"] = `${fontFamily}Medium`;
       }
@@ -401,7 +401,7 @@ function ConvertCssToReactNativeStyleOnFloor(
     if (copyStyleSheet[thirdLayerKey] === "x-large") {
       copyStyleSheet[thirdLayerKey] = fontSizeTab[2] * multiTab[index];
       copyStyleSheet["lineHeight"] = lineHeightTab[2] * multiTab[index];
-      copyStyleSheet["letterSpacing"] = fontSpace[2];
+      copyStyleSheet["letterSpacing"] = fontSpace[2] * multiTab[index];
 
       if (fontFamil) {
         copyStyleSheet["fontFamily"] = `${fontFamily}Regular`;
@@ -410,7 +410,7 @@ function ConvertCssToReactNativeStyleOnFloor(
     if (copyStyleSheet[thirdLayerKey] === "xx-large") {
       copyStyleSheet[thirdLayerKey] = fontSizeTab[3] * multiTab[index];
       copyStyleSheet["lineHeight"] = lineHeightTab[3] * multiTab[index];
-      copyStyleSheet["letterSpacing"] = fontSpace[3];
+      copyStyleSheet["letterSpacing"] = fontSpace[3] * multiTab[index];
 
       if (fontFamil) {
         copyStyleSheet["fontFamily"] = `${fontFamily}Regular`;
@@ -419,7 +419,7 @@ function ConvertCssToReactNativeStyleOnFloor(
     if (copyStyleSheet[thirdLayerKey] === "xxx-large") {
       copyStyleSheet[thirdLayerKey] = fontSizeTab[4] * multiTab[index];
       copyStyleSheet["lineHeight"] = lineHeightTab[4] * multiTab[index];
-      copyStyleSheet["letterSpacing"] = fontSpace[4];
+      copyStyleSheet["letterSpacing"] = fontSpace[4] * multiTab[index];
 
       if (fontFamil) {
         copyStyleSheet["fontFamily"] = `${fontFamily}Regular`;

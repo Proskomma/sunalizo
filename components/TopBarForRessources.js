@@ -4,7 +4,7 @@ import { Text, Button, IconButton, Modal } from "react-native-paper";
 import { ColorThemeContext } from "../context/colorThemeContext";
 import { NativeModules } from "react-native";
 import ArrowReturnLeftIcon from "../assets/icons/flavorIcons/arrowReturnLeftIcon";
-import { useRouter } from "expo-router";
+import { NavigationContext } from "../context/navigationContext";
 import { Portal } from "react-native-paper";
 export default function TopBarForRessources({
   mode,
@@ -16,7 +16,6 @@ export default function TopBarForRessources({
   const { colors, theme } = useContext(ColorThemeContext);
   const { StatusBarManager } = NativeModules;
   const [modalSure, setModalSure] = useState(false);
-  const router = useRouter();
 
   const styles = StyleSheet.create({
     titleContainer: {
@@ -98,7 +97,9 @@ export default function TopBarForRessources({
           </View>
           {mode === "Multiple" ? (
             <Button
-              onPress={() => console.log("goTo")}
+              onPress={() => {
+                functionShow()
+              }}
               mode="contained"
               contentStyle={{ height: 40 }}
               disabled={!isActive}

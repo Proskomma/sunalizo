@@ -1,9 +1,9 @@
 import React from 'react';
 import { SvgXml } from 'react-native-svg';
 
-export default function ResourcesIcon({ color = 'black' }) {
+export default function ResourcesIcon({ color = 'black',width=18,height=18 }) {
   const svgMarkup = `
-    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg width="${width}" height="${height}" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
       <g id="ResourcesIcon">
         <mask id="mask0_2000_16922" style="mask-type:alpha" maskUnits="userSpaceOnUse" x="0" y="0" width="18" height="18">
           <rect id="Bounding box" width="18" height="18" fill="#D9D9D9"/>

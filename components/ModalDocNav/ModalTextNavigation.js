@@ -327,7 +327,7 @@ async function getData(pk, docSetId) {
     const bookCode = doc.headers.find(
       (header) => header.key === "bookCode"
     ).value;
-    return bookCode !== "GLO" && bookCode !== "FRT";
+    return bookCode !== "GLO" && bookCode !== "FRT" && bookCode != "BAK";
   });
 
   return filteredDocuments;

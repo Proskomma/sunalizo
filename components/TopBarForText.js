@@ -83,6 +83,7 @@ export default function TopBarForText({
             paddingHorizontal: 4,
             paddingVertical: 8,
             alignItems: "center",
+            width:'100%'
           }}
         >
           <View  style={{
@@ -93,9 +94,7 @@ export default function TopBarForText({
                 margin: 0,
                 padding: 0,
               }}
-          >
-        
-                
+          >     
           </View>
           <DropDownSelectRessources setIsOnTop ={setIsOnTop} setDocSetId={functionTitle} />
           <View

@@ -107,19 +107,18 @@ const sofria2WebActions = {
     },
   ],
 
-  startVerses: [
+  endVerses: [
     {
       description: "Set up new verse",
       test: () => true,
       action: ({ config, context, workspace, output }) => {
         if (config.byVerse) {
-          workspace.paraContentStack[0].content.push(
-            config.renderers.divider()
-          );
+          workspace.webParas.push(config.renderers.divider());
         }
       },
     },
   ],
+
   blockGraft: [
     {
       description: "Process block grafts",
@@ -398,9 +397,9 @@ const sofria2WebActions = {
         let fontConfig = config.fontConfig
           ? config.fontConfig
           : { fontSize: 2, fontFamily: "default" };
-        if(element.text === ' '){
+        if (element.text === " ") {
           workspace.currentIndex += 1;
-          let word =  element.text;
+          let word = element.text;
           let idWord = workspace.currentIndex;
           let textRef = workspace.textRef;
 
@@ -411,16 +410,15 @@ const sofria2WebActions = {
             fontConfig,
           });
           workspace.paraContentStack[0].content.push(renderedText);
-        }
-        else{
+        } else {
           let t = element.text.match(r);
           if (t) {
             t.map((w, id) => {
               workspace.currentIndex += 1;
-              let word =  w;
+              let word = w;
               let idWord = workspace.currentIndex;
               let textRef = workspace.textRef;
-  
+
               const renderedText = config.renderers.text({
                 word,
                 idWord,
@@ -431,7 +429,6 @@ const sofria2WebActions = {
             });
           }
         }
-       
       },
     },
   ],

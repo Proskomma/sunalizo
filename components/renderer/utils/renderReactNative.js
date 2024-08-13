@@ -14,7 +14,7 @@ function getStyles(type, subType, indexForStyle, fontFamily = null) {
   }
   if (!rs[type][subType]) {
     console.log(`Unknown style '${type}' '${subType}'`);
-    if (indexForStyle && fontFamily) {
+    if (indexForStyle > -1 && fontFamily) {
       return ConvertCssToReactNativeStyleOnFloor(
         rs[type]["default"],
         indexForStyle,
@@ -24,7 +24,7 @@ function getStyles(type, subType, indexForStyle, fontFamily = null) {
       return ConvertCssToReactNativeStyleOnFloor(rs[type]["default"]);
     }
   }
-  if (indexForStyle && fontFamily) {
+  if (indexForStyle > -1 && fontFamily) {
     return ConvertCssToReactNativeStyleOnFloor(
       rs[type][subType],
       indexForStyle,
@@ -90,7 +90,8 @@ function InlineElement(props) {
 
 const renderers = {
   divider: () => {
-    return <View style={{ height: 1, width: "100%" }} />;
+    return <View 
+    id={'divider'} style={{ height: 1, backgroundColor:'red',width: "100%" }} />;
   },
   text: ({ word, idWord, workspace, fontConfig }) => {
     if (fontConfig && fontConfig.fontFamily != "default") {

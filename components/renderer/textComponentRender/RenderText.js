@@ -6,6 +6,7 @@ import sofria2WebActions from "../utils/sofria2WebActions";
 import { renderers } from "../utils/renderReactNative";
 import { ColorThemeContext } from "../../../context/colorThemeContext";
 import { StyleSheet } from "react-native";
+import { Text } from "react-native-paper";
 export function ReadingScreenAllBook({
   currentChap,
   setIsOnTop,
@@ -23,13 +24,13 @@ export function ReadingScreenAllBook({
     showTitles: true,
     showHeadings: true,
     showIntroductions: true,
-    showFootnotes: false,
+    showFootnotes: true,
     showXrefs: false,
-    showParaStyles: true, 
+    showParaStyles: true,
     showCharacterMarkup: true,
     showVersesLabels: true,
     showChapterLabels: true,
-    showFirstVerseLabel:false,
+    showFirstVerseLabel: false,
     selectedBcvNotes: [1],
     chapters: [`${currentChap}`],
     byVerse: bibleFormat === "byVerse",
@@ -42,18 +43,17 @@ export function ReadingScreenAllBook({
         fontText: colors.schemes[theme].onSurface,
         fontChap: colors.schemes[theme].onSurface,
         fontVerse: colors.schemes[theme].onSurface,
-        surface: colors.schemes[theme].surface ,
+        surface: colors.schemes[theme].surface,
         surfaceVariant: colors.schemes[theme].surfaceVariant,
       },
     },
-    
+
     renderers,
   });
   const styles = StyleSheet.create({
     scrollContainer: {
       backgroundColor: colors.schemes[theme].surface,
       paddingHorizontal: 24,
-
     },
     activityContainer: {
       width: "100%",
@@ -64,7 +64,7 @@ export function ReadingScreenAllBook({
       backgroundColor: colors.schemes[theme].surface,
     },
   });
-  
+
   useEffect(() => {
     setOption((prev) => ({
       ...prev,
@@ -77,12 +77,12 @@ export function ReadingScreenAllBook({
           fontText: colors.schemes[theme].onSurface,
           fontChap: colors.schemes[theme].onSurface,
           fontVerse: colors.schemes[theme].onSurface,
-          surface: colors.schemes[theme].surface ,
+          surface: colors.schemes[theme].surface,
           surfaceVariant: colors.schemes[theme].surfaceVariant,
         },
       },
     }));
-  }, [currentChap, fontSize, fontFamily, bibleFormat,theme]);
+  }, [currentChap, fontSize, fontFamily, bibleFormat, theme]);
 
   useEffect(() => {
     setIsLoading(true);
@@ -120,6 +120,34 @@ export function ReadingScreenAllBook({
   );
 }
 
+export function renderItems(items, pk, option) {
+  let output = [];
+  let workspace = { tr: 0 };
+  let context = {
+    sequences: [
+      {
+        type: "graft",
+        subType: "euuhh",
+        blockN: 1,
+        sequence: "non",
+      },
+    ],
+  };
+  let config = option;
+
+  const renderer = new SofriaRenderFromProskomma({
+    proskomma: pk,
+    actions: sofria2WebActions,
+  });
+
+  let t = {};
+  items.map((e) => {
+    let rI = renderItem(e);
+    if (rI) output.push(rI);
+  });
+
+  return output;
+}
 export function renderDoc(documentResult, pk, option) {
   let output = {};
   let workspace = { tr: 0 };
@@ -206,3 +234,21 @@ function BibleSelection({ pk, setBibleName, bible, setBible, setVisible }) {
   );
 }
 export { BibleSelection };
+
+export function renderItem(item) {
+  if (item.type === "token") {
+    return <Text>{item.payload}</Text>;
+  }
+}
+
+const camelCaseToSnakeCase = (s) => {
+  const ret = [];
+  for (const c of s.split("")) {
+    if (c.toUpperCase() === c && c.toLowerCase() !== c) {
+      ret.push(`_${c.toLowerCase()}`);
+    } else {
+      ret.push(c);
+    }
+  }
+  return ret.join("");
+};

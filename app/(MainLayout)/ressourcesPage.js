@@ -46,18 +46,23 @@ import { NavigationContext } from "../../context/navigationContext";
 import ArrowAlignTop from "../../assets/icons/flavorIcons/vertical_align_top";
 import MinusIcon from "../../assets/icons/flavorIcons/minusIcon";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { documentDirectory, readDirectoryAsync } from "expo-file-system";
+
+import { useRouter } from "expo-router";
 import { useMemo } from "react";
 export default function RessourcesPage() {
+  const router = useRouter();
+
   const { pk } = useContext(ProskommaContext);
   const { colors, theme } = useContext(ColorThemeContext);
-  const { docSetId, setDocSetId } = useContext(NavigationContext);
+  const { docSetId, setDocSetId, setSecondariesDocSetIds } =
+    useContext(NavigationContext);
   const [multiSelectRessourcesDocId, setMultiSelectRessourcesDocId] = useState(
     []
   );
   const multiSelectRessourceDocIdRef = useRef([]);
   const [scrollPosition, setScrollPosition] = useState({ x: 0, y: 0 });
-  console.log(scrollPosition);
-  const [typeSelection, setTypeSelection] = useState("Multiple");
+  const [typeSelection, setTypeSelection] = useState("Simple");
   const scrollView = useRef(null);
   const refList = useRef(null);
 
@@ -65,11 +70,14 @@ export default function RessourcesPage() {
   const [multiSelecTab, setMultiSelectTab] = useState(0);
   const [isInSwapMod, setIsInSwapMode] = useState(false);
   const [data, setData] = useState([]);
+  const [indexFile, setIndexFile] = useState({});
   const [scrollEnabled, setScrollEnabled] = useState(true);
-
   const [visible, setVisible] = useState(false);
 
-  useEffect(() => {}, [multiSelectRessourcesDocId.length]);
+  useEffect(() => {
+    fetchBibleIndexFromServer().then((e) => setIndexFile(e));
+  }, []);
+
   const onContentSizeChange = (width, height) => {};
 
   const handleScroll = (event) => {
@@ -244,6 +252,10 @@ export default function RessourcesPage() {
           }}
         >
           <TopBarForRessources
+            functionShow={() => {
+              setSecondariesDocSetIds(multiSelectRessourcesDocId);
+              router.push("/mainPage");
+            }}
             mode={typeSelection}
             isActive={multiSelectRessourcesDocId.length > 0}
           >
@@ -411,7 +423,7 @@ export default function RessourcesPage() {
                   </Text>
                   <View>
                     {data
-                      .filter((e) => e.id !== docSetId)
+                      ?.filter((e) => e.id !== docSetId && e.tags.length > 0)
                       .map((d) => (
                         <List.Item
                           onPress={() => setDocSetId(d.id)}
@@ -428,7 +440,9 @@ export default function RessourcesPage() {
                               variant="bodyLarge"
                               style={{ color: colors.schemes[theme].onSurface }}
                             >
-                              {d["tags"][0].split(":")[1]}
+                              {d["tags"].length > 0
+                                ? d["tags"][0].split(":")[1]
+                                : ""}
                             </Text>
                           )}
                           description={() => (
@@ -440,8 +454,13 @@ export default function RessourcesPage() {
                                 color: colors.schemes[theme].onSurfaceVariant,
                               }}
                             >
-                              {d["tags"][2].split(":")[1].toUpperCase()},{" "}
-                              {d["tags"][3].split(":")[1]}
+                              {d["tags"].length > 0
+                                ? d["tags"][2].split(":")[1].toUpperCase()
+                                : ""}
+                              ,{" "}
+                              {d["tags"].length > 0
+                                ? d["tags"][3].split(":")[1]
+                                : ""}
                             </Text>
                           )}
                           left={() => (
@@ -463,18 +482,60 @@ export default function RessourcesPage() {
                   >
                     Télécharger
                   </Text>
-                  <Text
-                    style={{
-                      alignItems: "center",
-                      alignSelf: "stretch",
-                      paddingVertical: 16,
-                      flexWrap: "wrap",
-                      marginHorizontal: "auto",
-                    }}
-                    variant="labelLarge"
-                  >
-                    Besoin d'une connexion internet
-                  </Text>
+                  {indexFile ? (
+                    indexFile.bibles?.map((d) => (
+                      <List.Item
+                        // onPress={() => setDocSetId(d.id)}
+                        style={{
+                          paddingLeft: 16,
+                          paddingRight: 24,
+                          paddingHorizontal: 8,
+                          gap: 16,
+                        }}
+                        title={() => (
+                          <Text
+                            numberOfLines={1} // Set the number of lines
+                            ellipsizeMode="tail" // Set the ellipsize mode
+                            variant="bodyLarge"
+                            style={{ color: colors.schemes[theme].onSurface }}
+                          >
+                            {d.title}
+                          </Text>
+                        )}
+                        description={() => (
+                          <Text
+                            numberOfLines={1} // Set the number of lines
+                            ellipsizeMode="tail" // Set the ellipsize mode
+                            variant="bodyMedium"
+                            style={{
+                              color: colors.schemes[theme].onSurfaceVariant,
+                            }}
+                          >
+                            {d.languageCode.toUpperCase()}, {d.owner}
+                          </Text>
+                        )}
+                        left={() => (
+                          <View style={{ width: 56, height: 56 }}></View>
+                        )}
+                        right={() => (
+                          <View style={{ width: 44, height: 48 }}></View>
+                        )}
+                      />
+                    ))
+                  ) : (
+                    <Text
+                      style={{
+                        alignItems: "center",
+                        alignSelf: "stretch",
+                        paddingVertical: 16,
+                        flexWrap: "wrap",
+                        marginHorizontal: "auto",
+                      }}
+                      variant="labelLarge"
+                    >
+                      Besoin d'une connexion internet
+                    </Text>
+                  )}
                 </>
               ) : (
                 <View>
@@ -738,7 +799,7 @@ export default function RessourcesPage() {
 
                     {multiSelecTab === 0 ? (
                       data
-                        .filter((e) => e.id !== docSetId)
+                        .filter((e) => e.id !== docSetId && e.tags.length > 0)
                         .map((d, id) => (
                           <List.Item
                             onPress={() => {
@@ -795,7 +856,9 @@ export default function RessourcesPage() {
                                   color: colors.schemes[theme].onSurface,
                                 }}
                               >
-                                {d["tags"][0].split(":")[1]}
+                                {d["tags"].length > 0
+                                  ? d["tags"][0].split(":")[1]
+                                  : ""}
                               </Text>
                             )}
                             description={() => (
@@ -807,8 +870,13 @@ export default function RessourcesPage() {
                                   color: colors.schemes[theme].onSurfaceVariant,
                                 }}
                               >
-                                {d["tags"][2].split(":")[1].toUpperCase()},{" "}
-                                {d["tags"][3].split(":")[1]}
+                                {d["tags"].length > 0
+                                  ? d["tags"][2].split(":")[1].toUpperCase()
+                                  : ""}
+                                ,{" "}
+                                {d["tags"].length > 0
+                                  ? d["tags"][3].split(":")[1]
+                                  : ""}
                               </Text>
                             )}
                             left={() => (
@@ -881,7 +949,75 @@ export default function RessourcesPage() {
                           />
                         ))
                     ) : (
-                      <Text>rien</Text>
+                      <>
+                        <Text
+                          style={{
+                            padding: 16,
+                            paddingLeft: 24,
+                            color: colors.schemes[theme].onSurface,
+                          }}
+                          variant="titleLarge"
+                        >
+                          Télécharger
+                        </Text>
+                        {indexFile ? (
+                          indexFile.questions.map((d) => (
+                            <List.Item
+                              // onPress={() => setDocSetId(d.id)}
+                              style={{
+                                paddingLeft: 16,
+                                paddingRight: 24,
+                                paddingHorizontal: 8,
+                                gap: 16,
+                              }}
+                              title={() => (
+                                <Text
+                                  numberOfLines={1} // Set the number of lines
+                                  ellipsizeMode="tail" // Set the ellipsize mode
+                                  variant="bodyLarge"
+                                  style={{
+                                    color: colors.schemes[theme].onSurface,
+                                  }}
+                                >
+                                  {d.title}
+                                </Text>
+                              )}
+                              description={() => (
+                                <Text
+                                  numberOfLines={1} // Set the number of lines
+                                  ellipsizeMode="tail" // Set the ellipsize mode
+                                  variant="bodyMedium"
+                                  style={{
+                                    color:
+                                      colors.schemes[theme].onSurfaceVariant,
+                                  }}
+                                >
+                                  {d.languageCode.toUpperCase()}, {d.owner}
+                                </Text>
+                              )}
+                              left={() => (
+                                <View style={{ width: 56, height: 56 }}></View>
+                              )}
+                              right={() => (
+                                <View style={{ width: 44, height: 48 }}></View>
+                              )}
+                            />
+                          ))
+                        ) : (
+                          <Text
+                            style={{
+                              alignItems: "center",
+                              alignSelf: "stretch",
+                              paddingVertical: 16,
+                              flexWrap: "wrap",
+                              marginHorizontal: "auto",
+                            }}
+                            variant="labelLarge"
+                          >
+                            Besoin d'une connexion internet
+                          </Text>
+                        )}
+                      </>
                     )}
                   </View>
                 </View>
@@ -951,6 +1087,20 @@ function createDataArray(pk) {
         }
       }
     `);
-
   return response.data.docSets;
+}
+
+async function fetchBibleIndexFromServer() {
+  try {
+    const response = await fetch(
+      `https://sunteleo-resources.xenizo.fr/index.json`
+    );
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json(); // Convert response to JSON
+    return data[0]; // Return the JSON data
+  } catch (error) {
+    console.error("Error fetching data:", error); // Handle errors
+  }
 }

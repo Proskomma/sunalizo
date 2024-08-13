@@ -24,7 +24,7 @@ import { ReadingScreenAllBook } from "../../components/renderer/textComponentRen
 import TopBarForText from "../../components/TopBarForText";
 import { useDocumentQuery } from "../../components/renderer/textComponentRender/RenderText";
 import BottomSheetContent from "../../components/BottomSheets/BottomSheetContent";
-import { Text, PaperProvider } from "react-native-paper";
+import { Text, PaperProvider, configureFonts } from "react-native-paper";
 import BottomSheetSearch from "../../components/BottomSheets/BottomSheetSearch";
 import BottomBar from "../../components/BottomBar";
 import ModalTextNavigation from "../../components/ModalDocNav/ModalTextNavigation";
@@ -34,6 +34,7 @@ import BottomSheetIntroInfo from "../../components/BottomSheets/BottomSheetIntro
 import { BackHandler } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { NavigationContext } from "../../context/navigationContext";
+import { MultiTextRender } from "../../components/renderer/textComponentRender/MultiTextRender";
 // import RNExitApp from 'react-native-exit-app';
 
 const MainPage = () => {
@@ -43,14 +44,19 @@ const MainPage = () => {
   const { pk } = useContext(ProskommaContext);
   const { colors, theme } = useContext(ColorThemeContext);
   const { StatusBarManager } = NativeModules;
-  const {docSetId,setDocSetId} = useContext(NavigationContext)
-
+  const {
+    docSetId,
+    setDocSetId,
+    setSecondariesDocSetIds,
+    secondariesDocSetIds,
+  } = useContext(NavigationContext);
 
   const bottomSheetRef = useRef(null);
   const bottomSheetIntroInfoRef = useRef(null);
   const [isOnTop, setIsOnTop] = useState(false);
   const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
-  const [isBottomSheetIntroInfoOpen, setIsBottomSheetOpenIntroInfoOpen] =useState(false)
+  const [isBottomSheetIntroInfoOpen, setIsBottomSheetOpenIntroInfoOpen] =
+    useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [currentChap, setCurrentChap] = useState(1);
   const [fontSize, setFontSize] = useState(2);
@@ -60,7 +66,6 @@ const MainPage = () => {
   const [bibleFormat, setBibleFormat] = useState("format");
   const [isFirstOfFirstBook, setIsFirstOfFirstBook] = useState(false);
   const [isLastOfLastBook, setIsLastOfLastBook] = useState(false);
-
 
   useEffect(() => {
     checkForLast(pk, currentBook, currentChap, docSetId).then((e) =>
@@ -72,9 +77,9 @@ const MainPage = () => {
     );
   }, [currentBook, currentChap, docSetId]);
 
-  useEffect(()=>{
-    setIsOnTop(false)
-  },[currentChap,currentBook])
+  useEffect(() => {
+    setIsOnTop(false);
+  }, [currentChap, currentBook]);
 
   const handleNextChap = useCallback(async () => {
     const nexChap = await getNextChap(pk, currentChap, currentBook, docSetId);
@@ -126,7 +131,7 @@ const MainPage = () => {
   }, [documentResult]);
 
   const backAction = () => {
-    if (isBottomSheetOpen) {
+    if (isBottomSheetOpen || isBottomSheetIntroInfoOpen) {
       handleBottomSheetIntroInfoClose();
       handleBottomSheetClose();
       return true; // Prevent default behavior
@@ -144,14 +149,15 @@ const MainPage = () => {
     );
 
     return () => backHandler.remove();
-  }, [isBottomSheetOpen]);
+  }, [isBottomSheetOpen, isBottomSheetIntroInfoOpen]);
+
   const handleBottomSheetIntroInfoOpen = useCallback(() => {
-    setIsBottomSheetOpenIntroInfoOpen(true)
+    setIsBottomSheetOpenIntroInfoOpen(true);
     bottomSheetIntroInfoRef.current.snapToIndex(0);
   }, []);
 
   const handleBottomSheetIntroInfoClose = useCallback(() => {
-    setIsBottomSheetOpenIntroInfoOpen(false)
+    setIsBottomSheetOpenIntroInfoOpen(false);
     bottomSheetIntroInfoRef.current.close();
   }, []);
 
@@ -206,30 +212,56 @@ const MainPage = () => {
     >
       <GestureHandlerRootView style={styles.container}>
         <StatusBar
-        barStyle={theme === 'dark' ? 'light-content' : 'dark-content'}
+          barStyle={theme === "dark" ? "light-content" : "dark-content"}
           style={{
             paddingTop: Platform.OS === "android" ? StatusBarManager.HEIGHT : 0,
           }}
           backgroundColor={colors.schemes[theme].surface}
         />
-       
-          <PaperProvider>
-          <TopBarForText
-          isOnTop={isOnTop}
-          functionTitle={setDocSetId}
-          functionParamText={handleBottomSheetOpen}
-          setIsOnTop={setIsOnTop}
-          functionInfo={handleBottomSheetIntroInfoOpen}
+
+        <PaperProvider
+          theme={{
+            fonts: configureFonts({ config: fontConfig }),
+            
+            colors: {
+              ...colors.schemes[theme],
+              surfaceDisabled: colors.stateLayers[theme].onSurface.opacity012,
+              onSurfaceDisabled:
+                colors.stateLayers[theme].onSurfaceVariant.opacity012,
+              backdrop: colors.stateLayers[theme].scrim.opacity012,
+            },
+          }}
         >
-            <ReadingScreenAllBook
-              setIsOnTop={setIsOnTop}
-              documentResult={documentResult}
-              pk={pk}
-              fontSize={fontSize}
-              currentChap={currentChap}
-              fontFamily={fontFamily}
-              bibleFormat={bibleFormat}
-            />
+          <TopBarForText
+            isOnTop={isOnTop}
+            functionTitle={setDocSetId}
+            functionParamText={handleBottomSheetOpen}
+            setIsOnTop={setIsOnTop}
+            functionInfo={handleBottomSheetIntroInfoOpen}
+          >
+            {secondariesDocSetIds.length > 0 ? (
+              <MultiTextRender
+                setIsOnTop={setIsOnTop}
+                documentResult={documentResult}
+                pk={pk}
+                fontSize={fontSize}
+                currentChap={currentChap}
+                fontFamily={fontFamily}
+                bibleFormat={bibleFormat}
+                book={currentBook}
+                multiBibleDocSetId={secondariesDocSetIds}
+              />
+            ) : (
+              <ReadingScreenAllBook
+                setIsOnTop={setIsOnTop}
+                documentResult={documentResult}
+                pk={pk}
+                fontSize={fontSize}
+                currentChap={currentChap}
+                fontFamily={fontFamily}
+                bibleFormat={bibleFormat}
+              />
+            )}
             <ModalTextNavigation
               setbookNav={handleModalTextNavigation}
               currentBook={currentBook}
@@ -238,22 +270,21 @@ const MainPage = () => {
               visible={isModalVisible}
               docSetId={docSetId}
             />
-                    </TopBarForText>
+          </TopBarForText>
+        </PaperProvider>
 
-          </PaperProvider>
-          
-          <BottomBar
-            currentBook={currentBook}
-            currentChap={currentChap}
-            documentResult={documentResult}
-            setCurrentChap={setCurrentChap}
-            isModalVisible={isModalVisible}
-            handlePreviousChap={handlePreviousChap}
-            handleNextChap={handleNextChap}
-            isFirstOfFirstBook={isFirstOfFirstBook}
-            isLastOfLastBook={isLastOfLastBook}
-            setIsModalVisible={setIsModalVisible}
-          />
+        <BottomBar
+          currentBook={currentBook}
+          currentChap={currentChap}
+          documentResult={documentResult}
+          setCurrentChap={setCurrentChap}
+          isModalVisible={isModalVisible}
+          handlePreviousChap={handlePreviousChap}
+          handleNextChap={handleNextChap}
+          isFirstOfFirstBook={isFirstOfFirstBook}
+          isLastOfLastBook={isLastOfLastBook}
+          setIsModalVisible={setIsModalVisible}
+        />
 
         {isBottomSheetOpen && (
           <TouchableWithoutFeedback
@@ -264,7 +295,7 @@ const MainPage = () => {
             <View style={styles.overlay} />
           </TouchableWithoutFeedback>
         )}
-         {isBottomSheetIntroInfoOpen && (
+        {isBottomSheetIntroInfoOpen && (
           <TouchableWithoutFeedback
             onPress={() => {
               handleBottomSheetIntroInfoClose();
@@ -305,9 +336,10 @@ const MainPage = () => {
           handleIndicatorStyle={styles.handlerStyle}
           backgroundStyle={styles.bottomSheet}
         >
-          <BottomSheetIntroInfo 
-          shown={isBottomSheetIntroInfoOpen}
-          docSetId={docSetId} />
+          <BottomSheetIntroInfo
+            shown={isBottomSheetIntroInfoOpen}
+            docSetId={docSetId}
+          />
         </BottomSheet>
       </GestureHandlerRootView>
     </SafeAreaView>
@@ -503,3 +535,110 @@ async function checkForLast(pk, bookCode, curChap, docSetId) {
     return null;
   }
 }
+
+const fontConfig = {
+  displaySmall: {
+    fontFamily: "NotoSansRegular",
+    fontSize: 36,
+    letterSpacing: 0,
+    lineHeight: 44,
+  },
+  displayMedium: {
+    fontFamily: "NotoSansRegular",
+    fontSize: 45,
+    fontWeight: "400",
+    letterSpacing: 0,
+    lineHeight: 52,
+  },
+  displayLarge: {
+    fontFamily: "NotoSansRegular",
+    fontSize: 57,
+    fontWeight: "400",
+    letterSpacing: -0.25,
+    lineHeight: 64,
+  },
+  headlineSmall: {
+    fontFamily: "NotoSansRegular",
+    fontSize: 24,
+    fontWeight: "400",
+    letterSpacing: 0,
+    lineHeight: 32,
+  },
+  headlineMedium: {
+    fontFamily: "NotoSansRegular",
+    fontSize: 28,
+    fontWeight: "400",
+    letterSpacing: 0,
+    lineHeight: 36,
+  },
+  headlineLarge: {
+    fontFamily: "NotoSansRegular",
+    fontSize: 32,
+    fontWeight: "400",
+    letterSpacing: 0,
+    lineHeight: 40,
+  },
+  titleSmall: {
+    fontFamily: "NotoSansMedium",
+    fontSize: 14,
+    fontWeight: "500",
+    letterSpacing: 0.1,
+    lineHeight: 20,
+  },
+  titleMedium: {
+    fontFamily: "NotoSansMedium",
+    fontSize: 16,
+    fontWeight: "500",
+    letterSpacing: 0.15,
+    lineHeight: 24,
+  },
+  titleLarge: {
+    fontFamily: "NotoSansRegular",
+    fontSize: 22,
+    fontWeight: "400",
+    letterSpacing: 0,
+    lineHeight: 28,
+  },
+  labelSmall: {
+    fontFamily: "NotoSansMedium",
+    fontSize: 11,
+    fontWeight: "500",
+    letterSpacing: 0.5,
+    lineHeight: 16,
+  },
+  labelMedium: {
+    fontFamily: "NotoSansMedium",
+    fontSize: 12,
+    fontWeight: "500",
+    letterSpacing: 0.5,
+    lineHeight: 16,
+  },
+  labelLarge: {
+    fontFamily: "NotoSansMedium",
+    fontSize: 14,
+    fontWeight: "500",
+    letterSpacing: 0.1,
+    lineHeight: 20,
+  },
+  bodySmall: {
+    fontFamily: "NotoSansRegular",
+    fontSize: 12,
+    fontWeight: "400",
+    letterSpacing: 0.4,
+    lineHeight: 16,
+  },
+  bodyMedium: {
+    fontFamily: "NotoSansRegular",
+    fontSize: 14,
+    fontWeight: "400",
+    letterSpacing: 0.25,
+    lineHeight: 20,
+  },
+  bodyLarge: {
+    fontFamily: "NotoSansRegular",
+    fontSize: 16,
+    fontWeight: "400",
+    letterSpacing: 0.5,
+    lineHeight: 22,
+  },
+};
