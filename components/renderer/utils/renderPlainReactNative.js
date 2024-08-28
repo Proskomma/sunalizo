@@ -7,19 +7,7 @@ import {
 import { StyleSheet } from "react-native";
 import { Table, Cell, TableWrapper } from "react-native-reanimated-table";
 
-let convertedStyleSheet = ConvertCssToReactNativeStyle(rs);
-const styles = StyleSheet.create(convertedStyleSheet);
 
-const getStyles = (type, subType) => {
-  if (!styles[type]) {
-    throw new Error(`Unknown style type '${type}'`);
-  }
-  if (!styles[type][subType]) {
-    console.log(`No styles for ${type}/${subType}`);
-    return styles[type].default;
-  }
-  return { ...styles[type].default, ...styles[type][subType] };
-};
 
 function InlineElement(props) {
   const [display, setDisplay] = useState(false);
@@ -54,7 +42,6 @@ const renderers = {
       return (
         <View
           key={`wrapper_${id}`}
-          style={{ ...getStyles("wrappers", subType), flexDirection: "row" }}
         >
           {updatedContent}
         </View>

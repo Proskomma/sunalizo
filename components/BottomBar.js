@@ -8,17 +8,18 @@ import ArrowLeftGreyIcon from "../assets/icons/flavorIcons/arrowGreyLeft";
 import { useContext } from "react";
 import { ColorThemeContext } from "../context/colorThemeContext";
 import { TouchableRipple } from "react-native-paper";
+import { NavigationContext } from "../context/navigationContext";
 export default function BottomBar({
-  currentBook,
+  
   handleNextChap,
   handlePreviousChap,
-  currentChap,
   documentResult,
   isModalVisible,
   isLastOfLastBook,
   isFirstOfFirstBook,
   setIsModalVisible,
 }) {
+  const {bookCode,currentChap} = useContext(NavigationContext)
   const { colors, theme } = useContext(ColorThemeContext);
   const styles = StyleSheet.create({
     bottomContainer: {
@@ -114,7 +115,7 @@ export default function BottomBar({
                     style={{color: colors.schemes[theme].onSurfaceVariant}}
                     variant="labelLarge"
                   >
-                    {currentBook} {currentChap}
+                    {bookCode} {currentChap}
                   </Text>
                   {isModalVisible ? (
                     <ArrowUpIcon

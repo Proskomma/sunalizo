@@ -1,11 +1,12 @@
 import React, { useContext, useState } from "react";
-import { View, StyleSheet } from "react-native";
+import { View, StyleSheet,StatusBar } from "react-native";
 import { Text, Button, IconButton, Modal } from "react-native-paper";
 import { ColorThemeContext } from "../context/colorThemeContext";
 import { NativeModules } from "react-native";
 import ArrowReturnLeftIcon from "../assets/icons/flavorIcons/arrowReturnLeftIcon";
 import { NavigationContext } from "../context/navigationContext";
 import { Portal } from "react-native-paper";
+import { useRouter } from "expo-router";
 export default function TopBarForRessources({
   mode,
   isActive,
@@ -13,13 +14,14 @@ export default function TopBarForRessources({
   functionShow,
   children,
 }) {
+  const router = useRouter();
+
   const { colors, theme } = useContext(ColorThemeContext);
   const { StatusBarManager } = NativeModules;
   const [modalSure, setModalSure] = useState(false);
-
   const styles = StyleSheet.create({
     titleContainer: {
-      marginTop: StatusBarManager.HEIGHT,
+      marginTop: 64 - StatusBarManager.HEIGHT,
     },
 
     customButton: {
@@ -32,6 +34,8 @@ export default function TopBarForRessources({
       alignItems: "center",
       flexDirection: "row",
       paddingVertical: 6,
+      marginTop: 24, // Use currentHeight for padding
+
       paddingHorizontal: 12,
     },
 
@@ -49,8 +53,9 @@ export default function TopBarForRessources({
       width: "100%",
       paddingHorizontal: 4,
       paddingVertical: 8,
+
+      justifyContent: "center",
       alignItems: "center",
-      alignContent: "stretch",
     },
 
     iconContainer: {
@@ -71,45 +76,45 @@ export default function TopBarForRessources({
   return (
     <>
       <View style={styles.titleContainer}>
-        <View style={styles.topBar}>
-          <View style={styles.iconContainer}>
-            <IconButton
-              style={{
-                margin: 0,
-                alignSelf: "center",
-                width: 48,
-                height: 48,
-              }}
-              onPress={() => {
-                if (mode && isActive) {
-                  setModalSure(true);
-                }
-              }}
-              icon={() => (
-                <ArrowReturnLeftIcon
-                  color={colors.schemes[theme].onSurfaceVariant}
-                />
-              )}
-            />
-          </View>
-          <View style={styles.textContainer}>
-            <Text variant="headlineSmall">Ressources</Text>
-          </View>
-          {mode === "Multiple" ? (
-            <Button
-              onPress={() => {
-                functionShow()
-              }}
-              mode="contained"
-              contentStyle={{ height: 40 }}
-              disabled={!isActive}
-            >
-              Afficher
-            </Button>
-          ) : (
-            <></>
-          )}
+      <View style={styles.topBar}>
+        <View style={styles.iconContainer}>
+          <IconButton
+            style={{
+              margin: 0,
+              alignSelf: "center",
+              width: 48,
+              height: 48,
+            }}
+            onPress={() => {
+              if (mode && isActive) {
+                setModalSure(true);
+              }
+            }}
+            icon={() => (
+              <ArrowReturnLeftIcon
+                color={colors.schemes[theme].onSurfaceVariant}
+              />
+            )}
+          />
         </View>
+        <View style={styles.textContainer}>
+          <Text variant="headlineSmall">Ressources</Text>
+        </View>
+        {mode === "Multiple" ? (
+          <Button
+            onPress={() => {
+              functionShow();
+            }}
+            mode="contained"
+            contentStyle={{ height: 40 }}
+            disabled={!isActive}
+          >
+            Afficher
+          </Button>
+        ) : (
+          <></>
+        )}
+      </View>
       </View>
       <Portal>
         <Modal
@@ -161,7 +166,7 @@ export default function TopBarForRessources({
               Annuler
             </Button>
             <Button
-            onPress={() =>  router.push("/mainPage")}
+              onPress={() => router.push("/mainPage")}
               containerStyle={{
                 paddingVertical: 12,
                 paddingHorizontal: 10,

@@ -12,18 +12,19 @@ import {
 } from "react";
 import { ProskommaContext } from "../../context/proskommaContext";
 import { ColorThemeContext } from "../../context/colorThemeContext";
+import { NavigationContext } from "../../context/navigationContext";
 
 export default function ModalTextNavigation({
-  currentBook,
-  currentChap,
   visible,
   setVisible,
   setbookNav,
-  docSetId,
 }) {
+  const { bookCode, setBookCode, setCurrentChap, currentChap, docSetId } =
+    useContext(NavigationContext);
+
   const { colors, theme } = useContext(ColorThemeContext);
   const { pk } = useContext(ProskommaContext);
-  const [book, setBook] = useState(currentBook);
+  const [book, setBook] = useState(bookCode);
   const [chapter, setChapter] = useState(currentChap);
   // const [verse, setVerse] = useState(1);
   const [data, setData] = useState(null);
@@ -36,8 +37,8 @@ export default function ModalTextNavigation({
   }, [currentChap]);
   const { i18n } = useContext(I18nContext);
   useEffect(() => {
-    setBook(currentBook);
-  }, [currentBook]);
+    setBook(bookCode);
+  }, [bookCode]);
 
   useEffect(() => {
     async function fetchData() {
@@ -80,7 +81,6 @@ export default function ModalTextNavigation({
       <Modal
         onDismiss={() => setVisible(false)}
         visible={visible}
-        
         contentContainerStyle={[
           styles.container,
           { backgroundColor: colors.schemes[theme].surfaceContainerHigh },
@@ -198,7 +198,8 @@ export default function ModalTextNavigation({
                   ?.cvIndexes.map((e, id) => (
                     <TouchableOpacity
                       onPress={() => {
-                        setbookNav(book, e.chapter, 1);
+                        setBookCode(book);
+                        setCurrentChap(e.chapter);
                         setVisible(false);
                       }}
                       style={

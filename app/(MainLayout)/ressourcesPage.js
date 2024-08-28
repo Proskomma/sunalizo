@@ -8,6 +8,8 @@ import {
   TouchableRipple,
   IconButton,
   Button,
+  Portal,
+  Modal,
 } from "react-native-paper";
 import TopBarForRessources from "../../components/TopBarForRessources";
 import {
@@ -20,7 +22,10 @@ import {
   Pressable,
   ScrollView,
 } from "react-native";
-
+import {
+  createFileIfNotExists,
+  deleteFileIfExists,
+} from "../../utils/fileFolderFunctions";
 import {
   NestableScrollContainer,
   NestableDraggableFlatList,
@@ -47,36 +52,73 @@ import ArrowAlignTop from "../../assets/icons/flavorIcons/vertical_align_top";
 import MinusIcon from "../../assets/icons/flavorIcons/minusIcon";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { documentDirectory, readDirectoryAsync } from "expo-file-system";
+import NetInfo from "@react-native-community/netinfo";
 
 import { useRouter } from "expo-router";
 import { useMemo } from "react";
 export default function RessourcesPage() {
   const router = useRouter();
-
+  const [reaload, setReaload] = useState(false);
   const { pk } = useContext(ProskommaContext);
   const { colors, theme } = useContext(ColorThemeContext);
-  const { docSetId, setDocSetId, setSecondariesDocSetIds } =
-    useContext(NavigationContext);
+  const {
+    docSetId,
+    setDocSetId,
+    secondariesDocSetIds,
+    setSecondariesDocSetIds,
+    setQuestionDocSetId,
+    questionDocSetId,
+  } = useContext(NavigationContext);
+
+  const [currentDocSetId, setCurrentDocSetId] = useState(docSetId);
+  const [data, setData] = useState(createDataArray(pk));
   const [multiSelectRessourcesDocId, setMultiSelectRessourcesDocId] = useState(
-    []
+    secondariesDocSetIds.map((d) => data.filter((e) => e.id === d)[0])
   );
+
+  const [questionDocSetIdInComponent, setQuestionDocSetIdInComponent] =
+    useState(questionDocSetId);
   const multiSelectRessourceDocIdRef = useRef([]);
   const [scrollPosition, setScrollPosition] = useState({ x: 0, y: 0 });
   const [typeSelection, setTypeSelection] = useState("Simple");
   const scrollView = useRef(null);
   const refList = useRef(null);
-
   const { StatusBarManager } = NativeModules;
   const [multiSelecTab, setMultiSelectTab] = useState(0);
   const [isInSwapMod, setIsInSwapMode] = useState(false);
-  const [data, setData] = useState([]);
   const [indexFile, setIndexFile] = useState({});
   const [scrollEnabled, setScrollEnabled] = useState(true);
   const [visible, setVisible] = useState(false);
+  const [indexDownload, setIndexDownload] = useState([]);
+  const [isConnected, setIsConnected] = useState(null);
+  const [modalSupprimer, setModalSupprimer] = useState(false);
+  const [ressourceToDelete, setRessourceToDelete] = useState();
 
   useEffect(() => {
-    fetchBibleIndexFromServer().then((e) => setIndexFile(e));
+    if (ressourceToDelete) setModalSupprimer(true);
+  }, [ressourceToDelete]);
+  useEffect(() => {
+    if (!modalSupprimer && ressourceToDelete) {
+      setRessourceToDelete();
+      setReaload((prev) => !prev);
+    }
+  }, [modalSupprimer]);
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener((state) => {
+      setIsConnected(state.isConnected);
+    });
+
+    // Cleanup the listener on unmount
+    return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (isConnected) {
+      fetchBibleIndexFromServer().then((e) => setIndexFile(e));
+    } else {
+      setIndexFile({});
+    }
+  }, [isConnected]);
 
   const onContentSizeChange = (width, height) => {};
 
@@ -105,7 +147,6 @@ export default function RessourcesPage() {
           style={{
             paddingLeft: 16,
             paddingRight: 24,
-            marginHorizontal: 8,
           }}
           contentStyle={{
             paddingLeft: 16,
@@ -185,10 +226,10 @@ export default function RessourcesPage() {
 
                         return [
                           ...prev.filter((e) => e.id != item.id),
-                          data.filter((e) => e.id === docSetId)[0],
+                          data.filter((e) => e.id === currentDocSetId)[0],
                         ];
                       });
-                      setDocSetId(item.id);
+                      setCurrentDocSetId(item.id);
                       setIsInSwapMode(false);
                     }}
                     icon={() => (
@@ -219,63 +260,48 @@ export default function RessourcesPage() {
         />
       </TouchableRipple>
     ),
-    []
+    [multiSelectRessourcesDocId]
   );
 
   useEffect(() => {
     setData(createDataArray(pk));
-  }, []);
+  }, [reaload]);
+
   return (
     <SafeAreaView
-      style={{
-        flex: 1,
-        backgroundColor: colors.schemes[theme].surface,
-      }}
+      style={{ flex: 1, backgroundColor: colors.schemes[theme].surface }}
     >
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <StatusBar
-          barStyle={theme === "dark" ? "light-content" : "dark-content"}
-          style={{
-            paddingTop: Platform.OS === "android" ? StatusBarManager.HEIGHT : 0,
+      <StatusBar
+        barStyle={theme === "dark" ? "light-content" : "dark-content"}
+        backgroundColor={colors.schemes[theme].surface}
+      />
+      <PaperProvider
+        theme={{
+          colors: {
+            ...colors.schemes[theme],
+            surfaceDisabled: colors.stateLayers[theme].onSurface.opacity012,
+            onSurfaceDisabled:
+              colors.stateLayers[theme].onSurfaceVariant.opacity012,
+            backdrop: colors.stateLayers[theme].scrim.opacity012,
+          },
+        }}
+      >
+        <TopBarForRessources
+          functionShow={() => {
+            router.back();
+            setSecondariesDocSetIds(
+              multiSelectRessourcesDocId.map((e) => e.id)
+            );
+            setQuestionDocSetId(questionDocSetIdInComponent);
+            setDocSetId(currentDocSetId);
           }}
-          backgroundColor={colors.schemes[theme].surface}
-        />
-        <PaperProvider
-          theme={{
-            colors: {
-              ...colors.schemes[theme],
-              surfaceDisabled: colors.stateLayers[theme].onSurface.opacity012,
-              onSurfaceDisabled:
-                colors.stateLayers[theme].onSurfaceVariant.opacity012,
-              backdrop: colors.stateLayers[theme].scrim.opacity012,
-            },
-          }}
+          mode={typeSelection}
+          isActive={
+            multiSelectRessourcesDocId.length > 0 ||
+            questionDocSetIdInComponent !== ""
+          }
         >
-          <TopBarForRessources
-            functionShow={() => {
-              setSecondariesDocSetIds(multiSelectRessourcesDocId);
-              router.push("/mainPage");
-            }}
-            mode={typeSelection}
-            isActive={multiSelectRessourcesDocId.length > 0}
-          >
-            {scrollPosition.y > 0 ? (
-              <FAB
-                size="small"
-                icon={() => <ArrowAlignTop />}
-                style={{
-                  position: "absolute",
-                  right: 0,
-                  margin: 16,
-                  bottom: 0,
-                  zIndex: 3,
-                }}
-                onPress={() => scrollView.current.scrollTo({ x: 0, y: 0 })}
-              />
-            ) : (
-              <></>
-            )}
-
+          <GestureHandlerRootView style={{ flex: 1 }}>
             <ScrollView
               onScroll={handleScroll}
               ref={scrollView}
@@ -344,7 +370,7 @@ export default function RessourcesPage() {
                     style={{
                       paddingLeft: 16,
                       paddingRight: 24,
-                      marginHorizontal: 8,
+
                       backgroundColor:
                         colors.stateLayers[theme].primary.opacity012,
                     }}
@@ -362,7 +388,7 @@ export default function RessourcesPage() {
                       >
                         {
                           data
-                            ?.filter((e) => e.id === docSetId)[0]
+                            ?.filter((e) => e.id === currentDocSetId)[0]
                             ?.tags[0]?.split(":")[1]
                         }
                       </Text>
@@ -377,13 +403,13 @@ export default function RessourcesPage() {
                         variant="bodyMedium"
                       >
                         {data
-                          ?.filter((e) => e.id === docSetId)[0]
+                          ?.filter((e) => e.id === currentDocSetId)[0]
                           ?.tags[2].split(":")[1]
                           .toUpperCase()}
                         ,{" "}
                         {
                           data
-                            ?.filter((e) => e.id === docSetId)[0]
+                            ?.filter((e) => e.id === currentDocSetId)[0]
                             ?.tags[3].split(":")[1]
                         }
                       </Text>
@@ -423,10 +449,24 @@ export default function RessourcesPage() {
                   </Text>
                   <View>
                     {data
-                      ?.filter((e) => e.id !== docSetId && e.tags.length > 0)
-                      .map((d) => (
+                      ?.filter(
+                        (e) =>
+                          e.id !== currentDocSetId &&
+                          e.tags.length > 0 &&
+                          !e.hasTag
+                      )
+                      .map((d, id) => (
                         <List.Item
-                          onPress={() => setDocSetId(d.id)}
+                          key={id}
+                          onLongPress={() => {
+                            setRessourceToDelete(d.id);
+                          }}
+                          onPress={() => {
+                            router.back();
+                            setSecondariesDocSetIds([]);
+                            setQuestionDocSetIdInComponent("");
+                            setDocSetId(d.id);
+                          }}
                           style={{
                             paddingLeft: 16,
                             paddingRight: 24,
@@ -482,46 +522,84 @@ export default function RessourcesPage() {
                   >
                     Télécharger
                   </Text>
-                  {indexFile ? (
-                    indexFile.bibles?.map((d) => (
-                      <List.Item
-                        // onPress={() => setDocSetId(d.id)}
-                        style={{
-                          paddingLeft: 16,
-                          paddingRight: 24,
-                          paddingHorizontal: 8,
-                          gap: 16,
-                        }}
-                        title={() => (
-                          <Text
-                            numberOfLines={1} // Set the number of lines
-                            ellipsizeMode="tail" // Set the ellipsize mode
-                            variant="bodyLarge"
-                            style={{ color: colors.schemes[theme].onSurface }}
-                          >
-                            {d.title}
-                          </Text>
-                        )}
-                        description={() => (
-                          <Text
-                            numberOfLines={1} // Set the number of lines
-                            ellipsizeMode="tail" // Set the ellipsize mode
-                            variant="bodyMedium"
-                            style={{
-                              color: colors.schemes[theme].onSurfaceVariant,
+                  {isConnected && indexFile && indexFile.bibles ? (
+                    indexFile.bibles
+                      .filter((e) => {
+                        let t = data.find((t) => t.id === e.id);
+                        if (t) {
+                          if (t.selector === e.selectors.revision) {
+                            return false;
+                          }
+                          return true;
+                        }
+                        return true;
+                      })
+                      .map((d, id) => (
+                        <>
+                          <List.Item
+                            key={id}
+                            onPress={() => {
+                              dlAndLoadFromServer(
+                                d.succinctUrl,
+                                pk,
+                                setReaload,
+                                indexDownload,
+                                setIndexDownload,
+                                id
+                              );
                             }}
-                          >
-                            {d.languageCode.toUpperCase()}, {d.owner}
-                          </Text>
-                        )}
-                        left={() => (
-                          <View style={{ width: 56, height: 56 }}></View>
-                        )}
-                        right={() => (
-                          <View style={{ width: 44, height: 48 }}></View>
-                        )}
-                      />
-                    ))
+                            style={{
+                              paddingLeft: 16,
+                              paddingRight: 24,
+                              paddingHorizontal: 8,
+                              gap: 16,
+                            }}
+                            title={() => (
+                              <Text
+                                numberOfLines={1} // Set the number of lines
+                                ellipsizeMode="tail" // Set the ellipsize mode
+                                variant="bodyLarge"
+                                style={{
+                                  color: colors.schemes[theme].onSurface,
+                                }}
+                              >
+                                {d.title}
+                              </Text>
+                            )}
+                            description={() => (
+                              <Text
+                                numberOfLines={1} // Set the number of lines
+                                ellipsizeMode="tail" // Set the ellipsize mode
+                                variant="bodyMedium"
+                                style={{
+                                  color: colors.schemes[theme].onSurfaceVariant,
+                                }}
+                              >
+                                {d.languageCode.toUpperCase()}, {d.owner}
+                              </Text>
+                            )}
+                            left={() => (
+                              <View style={{ width: 56, height: 56 }}></View>
+                            )}
+                            right={() => (
+                              <View style={{ width: 44, height: 48 }}></View>
+                            )}
+                          />
+                          {indexDownload.includes(id) &&
+                          data.filter((e) => e.id === indexDownload) ? (
+                            <View
+                              style={{
+                                justifyContent: "center",
+                                alignItems: "center",
+                              }}
+                            >
+                              <Text>En train de telecharger</Text>
+                            </View>
+                          ) : (
+                            <Text></Text>
+                          )}
+                        </>
+                      ))
                   ) : (
                     <Text
                       style={{
@@ -543,7 +621,7 @@ export default function RessourcesPage() {
                     style={{
                       paddingLeft: 16,
                       paddingRight: 24,
-                      marginHorizontal: 8,
+
                       backgroundColor:
                         colors.stateLayers[theme].primary.opacity012,
                     }}
@@ -561,7 +639,7 @@ export default function RessourcesPage() {
                       >
                         {
                           data
-                            ?.filter((e) => e.id === docSetId)[0]
+                            ?.filter((e) => e.id === currentDocSetId)[0]
                             ?.tags[0]?.split(":")[1]
                         }
                       </Text>
@@ -576,13 +654,13 @@ export default function RessourcesPage() {
                         variant="bodyMedium"
                       >
                         {data
-                          ?.filter((e) => e.id === docSetId)[0]
+                          ?.filter((e) => e.id === currentDocSetId)[0]
                           ?.tags[2].split(":")[1]
                           .toUpperCase()}
                         ,{" "}
                         {
                           data
-                            ?.filter((e) => e.id === docSetId)[0]
+                            ?.filter((e) => e.id === currentDocSetId)[0]
                             ?.tags[3].split(":")[1]
                         }
                       </Text>
@@ -630,6 +708,96 @@ export default function RessourcesPage() {
                       </View>
                     )}
                   />
+                  {questionDocSetIdInComponent !== "" ? (
+                    <List.Item
+                      style={{
+                        paddingLeft: 16,
+                        paddingRight: 24,
+                      }}
+                      contentStyle={{
+                        paddingLeft: 16,
+                        height: 56,
+                        marginHorizontal: 0,
+                      }}
+                      title={() => (
+                        <Text
+                          numberOfLines={1} // Set the number of lines
+                          ellipsizeMode="tail" // Set the ellipsize mode
+                          variant="bodyLarge"
+                          style={{ color: colors.schemes[theme].onSurface }}
+                        >
+                          {
+                            data
+                              ?.filter(
+                                (e) => e.id === questionDocSetIdInComponent
+                              )[0]
+                              ?.tags[0]?.split(":")[1]
+                          }
+                        </Text>
+                      )}
+                      description={() => (
+                        <Text
+                          style={{
+                            color: colors.schemes[theme].onSurfaceVariant,
+                          }}
+                          numberOfLines={1} // Set the number of lines
+                          ellipsizeMode="tail" // Set the ellipsize mode
+                          variant="bodyMedium"
+                        >
+                          {data
+                            ?.filter(
+                              (e) => e.id === questionDocSetIdInComponent
+                            )[0]
+                            ?.tags[2].split(":")[1]
+                            .toUpperCase()}
+                          ,{" "}
+                          {
+                            data
+                              ?.filter(
+                                (e) => e.id === questionDocSetIdInComponent
+                              )[0]
+                              ?.tags[3].split(":")[1]
+                          }
+                        </Text>
+                      )}
+                      left={() => (
+                        <View style={{ width: 56, height: 56 }}></View>
+                      )}
+                      right={() => (
+                        <View
+                          style={{
+                            gap: 10,
+                            marginLeft: 16,
+                            alignItems: "center",
+                            display: "flex",
+                            flexDirection: "row",
+                            width: 117,
+                          }}
+                        >
+                          <Text
+                            style={{
+                              color: colors.schemes[theme].onSurfaceVariant,
+                            }}
+                            variant="labelMedium"
+                          >
+                            Questions
+                          </Text>
+                          <IconButton
+                            size={24}
+                            style={{}}
+                            onPress={() => setQuestionDocSetIdInComponent("")}
+                            icon={() => (
+                              <MinusIcon
+                                color={colors.schemes[theme].onSurfaceVariant}
+                              />
+                            )}
+                          />
+                        </View>
+                      )}
+                    />
+                  ) : (
+                    <></>
+                  )}
                   <NestableScrollContainer>
                     <NestableDraggableFlatList
                       ref={refList}
@@ -658,9 +826,8 @@ export default function RessourcesPage() {
                       alignSelf: "stretch",
                     }}
                   >
-                    {multiSelectRessourcesDocId.length === 0 ? (
-                      <Text>Sélectionnez au moins une autre ressource</Text>
-                    ) : (
+                    
+                    
                       <Button
                         onPress={() => {
                           setMultiSelectRessourcesDocId((prev) => {
@@ -670,12 +837,23 @@ export default function RessourcesPage() {
                           });
                           setVisible(true);
                         }}
-                        style={{
-                          backgroundColor: colors.schemes[theme].error,
+                        
+                          style={{
+                            
+                          backgroundColor: 
+                          (multiSelectRessourcesDocId.length === 0 &&
+                            questionDocSetIdInComponent.length === 0 )?
+                            colors.schemes[theme].surfaceVariant:
+                          colors.schemes[theme].error,
                         }}
+                        disabled={(multiSelectRessourcesDocId.length === 0 &&
+                                   questionDocSetIdInComponent.length === 0 )}
                         icon={() => (
                           <MinusIcon
-                            color={colors.schemes[theme].onError}
+                            color={
+                              (multiSelectRessourcesDocId.length === 0 &&
+                                questionDocSetIdInComponent.length === 0 )?
+                                colors.schemes[theme].onSurfaceVariant:colors.schemes[theme].onError}
                             size={18}
                           />
                         )}
@@ -690,12 +868,15 @@ export default function RessourcesPage() {
                       >
                         <Text
                           variant="labelLarge"
-                          style={{ color: colors.schemes[theme].onError }}
+                          style={{ color: (multiSelectRessourcesDocId.length === 0 &&
+                            questionDocSetIdInComponent.length === 0 )?
+                            colors.schemes[theme].onSurfaceVariant:
+                            colors.schemes[theme].onError }}
                         >
-                          Retirer Tout
+                          Retirer tout
                         </Text>
                       </Button>
-                    )}
+                    
                   </View>
                   <Text
                     style={{
@@ -798,177 +979,64 @@ export default function RessourcesPage() {
                     <Divider />
 
                     {multiSelecTab === 0 ? (
-                      data
-                        .filter((e) => e.id !== docSetId && e.tags.length > 0)
-                        .map((d, id) => (
-                          <List.Item
-                            onPress={() => {
-                              if (isInSwapMod) {
-                                setDocSetId(d.id);
-                                setIsInSwapMode(false);
-                              } else {
-                                setMultiSelectRessourcesDocId((prev) => {
-                                  multiSelectRessourceDocIdRef.current = prev;
-
-                                  if (prev.some((e) => e.id === d.id)) {
-                                    setTimeout(() => {
-                                      scrollView.current.scrollTo({
-                                        x: scrollPosition.x,
-                                        y: scrollPosition.y - 84,
-                                        animated: false,
-                                      });
-                                    }, 1);
-                                    return prev.filter((e) => e.id !== d.id);
-                                  } else {
-                                    setTimeout(() => {
-                                      scrollView.current.scrollTo({
-                                        x: scrollPosition.x,
-                                        y: scrollPosition.y + 84,
-                                        animated: false,
-                                      });
-                                    }, 1);
-
-                                    return [...prev, d];
-                                  }
-                                });
-                              }
-                            }}
-                            style={{
-                              paddingLeft: 16,
-                              paddingRight: 24,
-                              paddingHorizontal: 8,
-                              gap: 16,
-                              borderBottomWidth: 1,
-                              backgroundColor:
-                                multiSelectRessourcesDocId.filter(
-                                  (e) => e.id === d.id
-                                ).length !== 0
-                                  ? colors.stateLayers[theme].onSurfaceVariant
-                                      .opacity012
-                                  : colors.schemes[theme].surface,
-                            }}
-                            title={() => (
-                              <Text
-                                numberOfLines={1} // Set the number of lines
-                                ellipsizeMode="tail" // Set the ellipsize mode
-                                variant="bodyLarge"
-                                style={{
-                                  color: colors.schemes[theme].onSurface,
-                                }}
-                              >
-                                {d["tags"].length > 0
-                                  ? d["tags"][0].split(":")[1]
-                                  : ""}
-                              </Text>
-                            )}
-                            description={() => (
-                              <Text
-                                numberOfLines={1} // Set the number of lines
-                                ellipsizeMode="tail" // Set the ellipsize mode
-                                variant="bodyMedium"
-                                style={{
-                                  color: colors.schemes[theme].onSurfaceVariant,
-                                }}
-                              >
-                                {d["tags"].length > 0
-                                  ? d["tags"][2].split(":")[1].toUpperCase()
-                                  : ""}
-                                ,{" "}
-                                {d["tags"].length > 0
-                                  ? d["tags"][3].split(":")[1]
-                                  : ""}
-                              </Text>
-                            )}
-                            left={() => (
-                              <View style={{ width: 44, height: 48 }}></View>
-                            )}
-                            right={() => (
-                              <View
-                                style={{
-                                  height: 48,
-                                  padding: 4,
-                                }}
-                              >
-                                {isInSwapMod ? (
-                                  <IconButton
-                                    size={24}
-                                    style={{
-                                      margin: 0,
-                                      padding: 8,
-                                    }}
-                                    onPress={() => {
-                                      if (
-                                        multiSelectRessourcesDocId.filter(
-                                          (e) => e.id === d.id
-                                        ).length > 0
-                                      ) {
-                                        setMultiSelectRessourcesDocId(
-                                          (prev) => {
-                                            multiSelectRessourceDocIdRef.current =
-                                              prev;
-
-                                            return [
-                                              ...prev.filter(
-                                                (e) => e.id != d.id
-                                              ),
-                                              data.filter(
-                                                (e) => e.id === docSetId
-                                              )[0],
-                                            ];
-                                          }
-                                        );
-                                      }
-                                      setDocSetId(d.id);
-                                      setIsInSwapMode(false);
-                                    }}
-                                    icon={() => (
-                                      <SwapRessourceIcon
-                                        color={colors.schemes[theme].primary}
-                                      />
-                                    )}
-                                  />
-                                ) : (
-                                  <View
-                                    style={{
-                                      padding: 2,
-                                    }}
-                                  >
-                                    <Checkbox
-                                      status={
-                                        multiSelectRessourcesDocId.filter(
-                                          (e) => e.id === d.id
-                                        ).length !== 0
-                                          ? "checked"
-                                          : "unchecked"
-                                      }
-                                    />
-                                  </View>
-                                )}
-                              </View>
-                            )}
-                          />
-                        ))
-                    ) : (
                       <>
-                        <Text
-                          style={{
-                            padding: 16,
-                            paddingLeft: 24,
-                            color: colors.schemes[theme].onSurface,
-                          }}
-                          variant="titleLarge"
-                        >
-                          Télécharger
-                        </Text>
-                        {indexFile ? (
-                          indexFile.questions.map((d) => (
+                        {data
+                          .filter(
+                            (e) =>
+                              e.id !== currentDocSetId &&
+                              e.tags.length > 0 &&
+                              !e.hasTag
+                          )
+                          .map((d, id) => (
                             <List.Item
-                              // onPress={() => setDocSetId(d.id)}
+                            
+                              key={id}
+                              onLongPress={() => setRessourceToDelete(d.id)}
+                              onPress={() => {
+                                if (isInSwapMod) {
+                                  setCurrentDocSetId(d.id);
+                                  setIsInSwapMode(false);
+                                } else {
+                                  setMultiSelectRessourcesDocId((prev) => {
+                                    multiSelectRessourceDocIdRef.current = prev;
+
+                                    if (prev.some((e) => e.id === d.id)) {
+                                      setTimeout(() => {
+                                        scrollView.current.scrollTo({
+                                          x: scrollPosition.x,
+                                          y: scrollPosition.y - 84,
+                                          animated: false,
+                                        });
+                                      }, 1);
+                                      return prev.filter((e) => e.id !== d.id);
+                                    } else {
+                                      setTimeout(() => {
+                                        scrollView.current.scrollTo({
+                                          x: scrollPosition.x,
+                                          y: scrollPosition.y + 84,
+                                          animated: false,
+                                        });
+                                      }, 1);
+
+                                      return [...prev, d];
+                                    }
+                                  });
+                                }
+                              }}
                               style={{
                                 paddingLeft: 16,
                                 paddingRight: 24,
                                 paddingHorizontal: 8,
                                 gap: 16,
+
+                                backgroundColor:
+                                  multiSelectRessourcesDocId.filter(
+                                    (e) => e.id === d.id
+                                  ).length !== 0
+                                    ? colors.stateLayers[theme].onSurfaceVariant
+                                        .opacity012
+                                    : colors.schemes[theme].surface,
+
                               }}
                               title={() => (
                                 <Text
@@ -979,7 +1047,9 @@ export default function RessourcesPage() {
                                     color: colors.schemes[theme].onSurface,
                                   }}
                                 >
-                                  {d.title}
+                                  {d["tags"].length > 0
+                                    ? d["tags"][0].split(":")[1]
+                                    : ""}
                                 </Text>
                               )}
                               description={() => (
@@ -992,17 +1062,425 @@ export default function RessourcesPage() {
                                       colors.schemes[theme].onSurfaceVariant,
                                   }}
                                 >
-                                  {d.languageCode.toUpperCase()}, {d.owner}
+                                  {d["tags"].length > 0
+                                    ? d["tags"][2].split(":")[1].toUpperCase()
+                                    : ""}
+                                  ,{" "}
+                                  {d["tags"].length > 0
+                                    ? d["tags"][3].split(":")[1]
+                                    : ""}
                                 </Text>
                               )}
                               left={() => (
                                 <View style={{ width: 56, height: 56 }}></View>
                               )}
                               right={() => (
-                                <View style={{ width: 44, height: 48 }}></View>
+                                <View
+                                  style={{
+                                    height: 48,
+                                    padding: 4,
+                                  }}
+                                >
+                                  {isInSwapMod ? (
+                                    <IconButton
+                                      size={24}
+                                      style={{
+                                        margin: 0,
+                                        padding: 8,
+                                      }}
+                                      onPress={() => {
+                                        if (
+                                          multiSelectRessourcesDocId.filter(
+                                            (e) => e.id === d.id
+                                          ).length > 0
+                                        ) {
+                                          setMultiSelectRessourcesDocId(
+                                            (prev) => {
+                                              multiSelectRessourceDocIdRef.current =
+                                                prev;
+
+                                              return [
+                                                ...prev.filter(
+                                                  (e) => e.id != d.id
+                                                ),
+                                                data.filter(
+                                                  (e) =>
+                                                    e.id === currentDocSetId
+                                                )[0],
+                                              ];
+                                            }
+                                          );
+                                        }
+                                        setCurrentDocSetId(d.id);
+                                        setIsInSwapMode(false);
+                                      }}
+                                      icon={() => (
+                                        <SwapRessourceIcon
+                                          color={colors.schemes[theme].primary}
+                                        />
+                                      )}
+                                    />
+                                  ) : (
+                                    <View
+                                      style={{
+                                        padding: 2,
+                                      }}
+                                    >
+                                      <Checkbox
+                                        status={
+                                          multiSelectRessourcesDocId.filter(
+                                            (e) => e.id === d.id
+                                          ).length !== 0
+                                            ? "checked"
+                                            : "unchecked"
+                                        }
+                                      />
+                                    </View>
+                                  )}
+                                </View>
                               )}
                             />
-                          ))
+                          ))}
+                        <>
+                          <Text
+                            style={{
+                              padding: 16,
+                              paddingLeft: 24,
+                              color: colors.schemes[theme].onSurface,
+                            }}
+                            variant="titleLarge"
+                          >
+                            Télécharger
+                          </Text>
+                          {isConnected && indexFile && indexFile.bibles ? (
+                            indexFile.bibles
+                              .filter((e) => {
+                                let t = data.find((t) => t.id === e.id);
+                                if (t) {
+                                  if (t.selector === e.selectors.revision) {
+                                    return false;
+                                  }
+                                  return true;
+                                }
+                                return true;
+                              })
+                              .map((d, id) => (
+                                <>
+                                  <List.Item
+                                    key={id}
+                                    onPress={() => {
+                                      dlAndLoadFromServer(
+                                        d.succinctUrl,
+                                        pk,
+                                        setReaload,
+                                        indexDownload,
+                                        setIndexDownload,
+                                        id
+                                      );
+                                    }}
+                                    style={{
+                                      paddingLeft: 16,
+                                      paddingRight: 24,
+                                      paddingHorizontal: 8,
+                                      gap: 16,
+                                    }}
+                                    title={() => (
+                                      <Text
+                                        numberOfLines={1} // Set the number of lines
+                                        ellipsizeMode="tail" // Set the ellipsize mode
+                                        variant="bodyLarge"
+                                        style={{
+                                          color:
+                                            colors.schemes[theme].onSurface,
+                                        }}
+                                      >
+                                        {d.title}
+                                      </Text>
+                                    )}
+                                    description={() => (
+                                      <Text
+                                        numberOfLines={1} // Set the number of lines
+                                        ellipsizeMode="tail" // Set the ellipsize mode
+                                        variant="bodyMedium"
+                                        style={{
+                                          color:
+                                            colors.schemes[theme]
+                                              .onSurfaceVariant,
+                                        }}
+                                      >
+                                        {d.languageCode.toUpperCase()},{" "}
+                                        {d.owner}
+                                      </Text>
+                                    )}
+                                    left={() => (
+                                      <View
+                                        style={{ width: 56, height: 56 }}
+                                      ></View>
+                                    )}
+                                    right={() => (
+                                      <View
+                                        style={{ width: 44, height: 48 }}
+                                      ></View>
+                                    )}
+                                  />
+                                  {indexDownload.includes(id) &&
+                                  data.filter((e) => e.id === indexDownload) ? (
+                                    <View
+                                      style={{
+                                        justifyContent: "center",
+                                        alignItems: "center",
+                                      }}
+                                    >
+                                      <Text>En train de telecharger</Text>
+                                    </View>
+                                  ) : (
+                                    <Text></Text>
+                                  )}
+                                </>
+                              ))
+                          ) : (
+                            <Text
+                              style={{
+                                alignItems: "center",
+                                alignSelf: "stretch",
+                                paddingVertical: 16,
+                                flexWrap: "wrap",
+                                marginHorizontal: "auto",
+                              }}
+                              variant="labelLarge"
+                            >
+                              Besoin d'une connexion internet
+                            </Text>
+                          )}
+                        </>
+                      </>
+                    ) : (
+                      <>
+                        {data
+                          .filter(
+                            (e) =>
+                              e.id !== currentDocSetId &&
+                              e.tags.length > 0 &&
+                              e.hasTag
+                          )
+                          .map((d, id) => (
+                            <List.Item
+                              key={id}
+                              onLongPress={() => setRessourceToDelete(d.id)}
+                              onPress={() => {
+                                if (d.id === questionDocSetIdInComponent) {
+                                  setQuestionDocSetIdInComponent("");
+                                } else {
+                                  setQuestionDocSetIdInComponent(d.id);
+                                }
+                              }}
+                              style={{
+                                paddingLeft: 16,
+                                paddingRight: 24,
+                                backgroundColor: "red",
+                                paddingHorizontal: 8,
+                                gap: 16,
+                                backgroundColor:
+                                  questionDocSetIdInComponent === d.id
+                                    ? colors.stateLayers[theme].onSurfaceVariant
+                                        .opacity012
+                                    : colors.schemes[theme].surface,
+                              }}
+                              title={() => (
+                                <Text
+                                  numberOfLines={1} // Set the number of lines
+                                  ellipsizeMode="tail" // Set the ellipsize mode
+                                  variant="bodyLarge"
+                                  style={{
+                                    color: colors.schemes[theme].onSurface,
+                                  }}
+                                >
+                                  {d["tags"].length > 0
+                                    ? d["tags"][0].split(":")[1]
+                                    : ""}
+                                </Text>
+                              )}
+                              description={() => (
+                                <Text
+                                  numberOfLines={1} // Set the number of lines
+                                  ellipsizeMode="tail" // Set the ellipsize mode
+                                  variant="bodyMedium"
+                                  style={{
+                                    color:
+                                      colors.schemes[theme].onSurfaceVariant,
+                                  }}
+                                >
+                                  {d["tags"].length > 0
+                                    ? d["tags"][2].split(":")[1].toUpperCase()
+                                    : ""}
+                                  ,{" "}
+                                  {d["tags"].length > 0
+                                    ? d["tags"][3].split(":")[1]
+                                    : ""}
+                                </Text>
+                              )}
+                              left={() => (
+                                <View style={{ width: 56, height: 56 }}></View>
+                              )}
+                              right={() => (
+                                <View
+                                  style={{
+                                    height: 48,
+                                    padding: 4,
+                                  }}
+                                >
+                                  {isInSwapMod ? (
+                                    <IconButton
+                                      size={24}
+                                      style={{
+                                        margin: 0,
+                                        padding: 8,
+                                      }}
+                                      onPress={() => {
+                                        if (
+                                          multiSelectRessourcesDocId.filter(
+                                            (e) => e.id === d.id
+                                          ).length > 0
+                                        ) {
+                                          setMultiSelectRessourcesDocId(
+                                            (prev) => {
+                                              multiSelectRessourceDocIdRef.current =
+                                                prev;
+
+                                              return [
+                                                ...prev.filter(
+                                                  (e) => e.id != d.id
+                                                ),
+                                                data.filter(
+                                                  (e) =>
+                                                    e.id === currentDocSetId
+                                                )[0],
+                                              ];
+                                            }
+                                          );
+                                        }
+                                        setCurrentDocSetId(d.id);
+                                        setIsInSwapMode(false);
+                                      }}
+                                      icon={() => (
+                                        <SwapRessourceIcon
+                                          color={colors.schemes[theme].primary}
+                                        />
+                                      )}
+                                    />
+                                  ) : (
+                                    <View
+                                      style={{
+                                        padding: 2,
+                                      }}
+                                    >
+                                      <Checkbox
+                                        status={
+                                          questionDocSetIdInComponent === d.id
+                                            ? "checked"
+                                            : "unchecked"
+                                        }
+                                      />
+                                    </View>
+                                  )}
+                                </View>
+                              )}
+                            />
+                          ))}
+                        <Text
+                          style={{
+                            padding: 16,
+                            paddingLeft: 24,
+                            color: colors.schemes[theme].onSurface,
+                          }}
+                          variant="titleLarge"
+                        >
+                          Télécharger
+                        </Text>
+                        {isConnected && indexFile && indexFile.bibles ? (
+                          indexFile.questions
+                            .filter((e) => {
+                              let t = data.find((t) => t.id === e.id);
+                              if (t) {
+                                if (t.selector === e.selectors.revision) {
+                                  return false;
+                                }
+                                return true;
+                              }
+                              return true;
+                            })
+                            .map((d, id) => (
+                              <>
+                                <List.Item
+                                  key={id}
+                                  onPress={() =>
+                                    dlAndLoadFromServer(
+                                      d.succinctUrl,
+                                      pk,
+                                      setReaload,
+                                      indexDownload,
+                                      setIndexDownload,
+                                      id
+                                    )
+                                  }
+                                  style={{
+                                    paddingLeft: 16,
+                                    paddingRight: 24,
+                                    paddingHorizontal: 8,
+                                    gap: 16,
+                                  }}
+                                  title={() => (
+                                    <Text
+                                      numberOfLines={1} // Set the number of lines
+                                      ellipsizeMode="tail" // Set the ellipsize mode
+                                      variant="bodyLarge"
+                                      style={{
+                                        color: colors.schemes[theme].onSurface,
+                                      }}
+                                    >
+                                      {d.title}
+                                    </Text>
+                                  )}
+                                  description={() => (
+                                    <Text
+                                      numberOfLines={1} // Set the number of lines
+                                      ellipsizeMode="tail" // Set the ellipsize mode
+                                      variant="bodyMedium"
+                                      style={{
+                                        color:
+                                          colors.schemes[theme]
+                                            .onSurfaceVariant,
+                                      }}
+                                    >
+                                      {d.languageCode.toUpperCase()}, {d.owner}
+                                    </Text>
+                                  )}
+                                  left={() => (
+                                    <View
+                                      style={{ width: 56, height: 56 }}
+                                    ></View>
+                                  )}
+                                  right={() => (
+                                    <View
+                                      style={{ width: 44, height: 48 }}
+                                    ></View>
+                                  )}
+                                />
+                                {indexDownload.includes(id) &&
+                                data.filter((e) => e.id === indexDownload) ? (
+                                  <View
+                                    style={{
+                                      justifyContent: "center",
+                                      alignItems: "center",
+                                    }}
+                                  >
+                                    <Text>En train de telecharger</Text>
+                                  </View>
+                                ) : (
+                                  <Text></Text>
+                                )}
+                              </>
+                            ))
                         ) : (
                           <Text
                             style={{
@@ -1022,11 +1500,97 @@ export default function RessourcesPage() {
                   </View>
                 </View>
               )}
+              
+            </ScrollView>
+            <Portal>
+           
+              <Modal
+                visible={modalSupprimer}
+                onDismiss={() => setModalSupprimer(false)}
+              >
+                <View
+                  style={{
+                    marginHorizontal: 24,
+                    backgroundColor: colors.schemes[theme].surfaceContainerHigh,
+                    padding: 24,
+                    borderRadius: 28,
+                  }}
+                >
+                  <View
+                    style={{
+                      display: "flex",
+                      gap: 16,
+                      alignSelf: "stretch",
+                      alignItems: "flex-start",
+                    }}
+                  >
+                    <Text variant="headlineSmall">Supprimer ressource ?</Text>
+                    <Text
+                      style={{ color: colors.schemes[theme].onSurfaceVariant }}
+                      variant="bodyMedium"
+                    >
+                      La ressource sera supprimée du téléphone, mais pourra être
+                      téléchargée à nouveau.
+                    </Text>
+                  </View>
+                  <View
+                    style={{
+                      gap: 8,
+                      paddingVertical: 24,
+                      paddingLeft: 8,
+                      justifyContent: "flex-end",
+                      alignSelf: "stretch",
+                      display: "flex",
+                      flexDirection: "row",
+                    }}
+                  >
+                    <TouchableRipple
+                      onPress={() => {
+                        setModalSupprimer(false);
+                      }}
+                    >
+                      <Text
+                        variant="labelLarge"
+                        style={{
+                          color: colors.schemes[theme].primary,
+                          paddingHorizontal: 12,
+                          paddingVertical: 10,
+                        }}
+                      >
+                        Annuler
+                      </Text>
+                    </TouchableRipple>
+                    <TouchableRipple
+                      onPress={async () => {
+                        deleteFileIfExists(
+                          `succinct/${ressourceToDelete}.json`
+                        );
+                        query = `mutation { deleteDocSet(docSetId: "${ressourceToDelete}") }`;
+                        result = await pk.gqlQuery(query);
+                        setModalSupprimer(false);
+                      }}
+                    >
+                      <Text
+                        variant="labelLarge"
+                        style={{
+                          color: colors.schemes[theme].primary,
+                          paddingHorizontal: 12,
+                          paddingVertical: 10,
+                        }}
+                      >
+                        Supprimer
+                      </Text>
+                    </TouchableRipple>
+                  </View>
+                </View>
+                <></>
+                
+              </Modal>
               <Snackbar
                 visible={visible}
                 onDismiss={() => setVisible(false)}
                 action={{
-                  label: "Anuller",
+                  label: "Annuler",
                   onPress: () => {
                     setMultiSelectRessourcesDocId(
                       multiSelectRessourceDocIdRef.current
@@ -1037,13 +1601,26 @@ export default function RessourcesPage() {
               >
                 Sélection retirée
               </Snackbar>
-            </ScrollView>
-          </TopBarForRessources>
-        </PaperProvider>
-      </GestureHandlerRootView>
+              <FAB
+                size="small"
+                icon="arrow-collapse-up"
+                style={{
+                  position: "absolute",
+                  right: 0,
+                  margin: 16,
+                  bottom: 0,
+                  opacity: scrollPosition.y > 0 ? 1 : 0, // Use opacity to control visibility
+                }}
+                onPress={() => scrollView.current.scrollTo({ x: 0, y: 0 })}
+              />
+            </Portal>
+          </GestureHandlerRootView>
+        </TopBarForRessources>
+      </PaperProvider>
     </SafeAreaView>
   );
 }
+
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
@@ -1082,6 +1659,9 @@ function createDataArray(pk) {
   const response = pk.gqlQuerySync(`
       {
         docSets {
+            hasTag(tagName: "resourcetype:questions")
+                selector(id: "revision")
+
           tags
           id
         }
@@ -1102,5 +1682,41 @@ async function fetchBibleIndexFromServer() {
     return data[0]; // Return the JSON data
   } catch (error) {
     console.error("Error fetching data:", error); // Handle errors
+  }
+}
+
+async function dlAndLoadFromServer(
+  url,
+  pk,
+  setReaload,
+  indexDownload,
+  setIndexDownload,
+  id
+) {
+  try {
+    if (!indexDownload.includes(id)) {
+      setIndexDownload((prev) => [...prev, id]);
+      const response = await fetch(
+        `https://sunteleo-resources.xenizo.fr/${url}`
+      );
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json(); // Convert response to JSON
+      await createFileIfNotExists(`succinct/${url}`, data);
+      pk.loadSuccinctDocSet(data);
+      setReaload((prev) => !prev);
+
+      setIndexDownload((prev) => {
+        return prev.splice(prev.indexOf(id), 0);
+      });
+
+      return true; // Return the JSON data
+    } else {
+      return false;
+    }
+  } catch (error) {
+    console.error("Error fetching data:", error); // Handle errors
+    return false;
   }
 }

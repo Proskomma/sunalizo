@@ -44,7 +44,6 @@ export default function IndexScreen() {
   useEffect(() => {
     async function loadResources() {
       if (!isReady) {
-        await deleteFolderIfExist("succinct");
         const info = await getAllInDirectory(`/`);
         if (!info.includes("succinct")) {
           await createFolderIfNotExists("succinct");

@@ -47,8 +47,13 @@ const MainPage = () => {
   const {
     docSetId,
     setDocSetId,
-    setSecondariesDocSetIds,
     secondariesDocSetIds,
+    questionDocSetId,
+    currentChap,
+    setCurrentChap,
+    bookCode,
+    setBookCode
+    
   } = useContext(NavigationContext);
 
   const bottomSheetRef = useRef(null);
@@ -58,72 +63,70 @@ const MainPage = () => {
   const [isBottomSheetIntroInfoOpen, setIsBottomSheetOpenIntroInfoOpen] =
     useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [currentChap, setCurrentChap] = useState(1);
   const [fontSize, setFontSize] = useState(2);
   const [documentResult, setDocResults] = useState(null);
-  const [currentBook, setCurrentBook] = useState("MRK");
   const [fontFamily, setFontFamily] = useState("NotoSans");
   const [bibleFormat, setBibleFormat] = useState("format");
   const [isFirstOfFirstBook, setIsFirstOfFirstBook] = useState(false);
   const [isLastOfLastBook, setIsLastOfLastBook] = useState(false);
 
   useEffect(() => {
-    checkForLast(pk, currentBook, currentChap, docSetId).then((e) =>
+    checkForLast(pk, bookCode, currentChap, docSetId).then((e) =>
       setIsLastOfLastBook(e)
     );
 
-    checkForFirst(pk, currentBook, currentChap, docSetId).then((e) =>
+    checkForFirst(pk, bookCode, currentChap, docSetId).then((e) =>
       setIsFirstOfFirstBook(e)
     );
-  }, [currentBook, currentChap, docSetId]);
+  }, [bookCode, currentChap, docSetId]);
 
   useEffect(() => {
     setIsOnTop(false);
-  }, [currentChap, currentBook]);
+  }, [currentChap, bookCode]);
 
   const handleNextChap = useCallback(async () => {
-    const nexChap = await getNextChap(pk, currentChap, currentBook, docSetId);
+    const nexChap = await getNextChap(pk, currentChap, bookCode, docSetId);
     if (nexChap) {
       setCurrentChap(nexChap);
       return true;
     } else {
-      const nextBook = await getNextBookCode(currentBook, pk, docSetId);
+      const nextBook = await getNextBookCode(bookCode, pk, docSetId);
       if (nextBook) {
-        setCurrentBook(nextBook);
+        setBookCode(nextBook);
         setCurrentChap(1);
         return true;
       } else {
         return false;
       }
     }
-  }, [currentChap, currentBook, docSetId, pk]);
+  }, [currentChap, bookCode, docSetId, pk]);
 
   const handlePreviousChap = useCallback(async () => {
     const previousChap = await getPreviousChap(
       pk,
       currentChap,
-      currentBook,
+      bookCode,
       docSetId
     );
     if (previousChap) {
       setCurrentChap(previousChap);
     } else {
-      const PreviousBook = await getPreviousBookCode(currentBook, pk, docSetId);
+      const PreviousBook = await getPreviousBookCode(bookCode, pk, docSetId);
       if (PreviousBook) {
-        setCurrentBook(PreviousBook);
+        setBookCode(PreviousBook);
         setCurrentChap(1);
       }
     }
-  }, [currentChap, currentBook, docSetId, pk]);
+  }, [currentChap, bookCode, docSetId, pk]);
 
   useEffect(() => {
     setDocResults(null);
-  }, [currentBook, docSetId]);
+  }, [bookCode, docSetId]);
 
   useEffect(() => {
     if (!documentResult) {
       const fetchDocument = async () => {
-        const result = await useDocumentQuery(currentBook, docSetId, pk);
+        const result = await useDocumentQuery(bookCode, docSetId, pk);
         setDocResults(result);
       };
       fetchDocument();
@@ -172,7 +175,7 @@ const MainPage = () => {
   }, []);
 
   const handleModalTextNavigation = useCallback((book, chap, verse) => {
-    setCurrentBook(book);
+    setBookCode(book);
     setCurrentChap(chap);
   }, []);
 
@@ -239,7 +242,7 @@ const MainPage = () => {
             setIsOnTop={setIsOnTop}
             functionInfo={handleBottomSheetIntroInfoOpen}
           >
-            {secondariesDocSetIds.length > 0 ? (
+            {secondariesDocSetIds.length > 0 || questionDocSetId != ''? (
               <MultiTextRender
                 setIsOnTop={setIsOnTop}
                 documentResult={documentResult}
@@ -248,8 +251,9 @@ const MainPage = () => {
                 currentChap={currentChap}
                 fontFamily={fontFamily}
                 bibleFormat={bibleFormat}
-                book={currentBook}
-                multiBibleDocSetId={secondariesDocSetIds}
+                book={bookCode}
+                questionId={questionDocSetId}
+                realMultiBibleDocSetId={secondariesDocSetIds}
               />
             ) : (
               <ReadingScreenAllBook
@@ -264,7 +268,7 @@ const MainPage = () => {
             )}
             <ModalTextNavigation
               setbookNav={handleModalTextNavigation}
-              currentBook={currentBook}
+              currentBook={bookCode}
               currentChap={currentChap}
               setVisible={setIsModalVisible}
               visible={isModalVisible}
@@ -274,10 +278,8 @@ const MainPage = () => {
         </PaperProvider>
 
         <BottomBar
-          currentBook={currentBook}
-          currentChap={currentChap}
+         
           documentResult={documentResult}
-          setCurrentChap={setCurrentChap}
           isModalVisible={isModalVisible}
           handlePreviousChap={handlePreviousChap}
           handleNextChap={handleNextChap}
@@ -285,7 +287,7 @@ const MainPage = () => {
           isLastOfLastBook={isLastOfLastBook}
           setIsModalVisible={setIsModalVisible}
         />
-
+ 
         {isBottomSheetOpen && (
           <TouchableWithoutFeedback
             onPress={() => {

@@ -10,14 +10,14 @@ import { useRouter } from "expo-router";
 import AddResourcesIcon from "../assets/icons/flavorIcons/addResources";
 export default function DropDownSelectRessources({ setDocSetId, setIsOnTop }) {
   const router = useRouter();
-  const { docSetId, secondariesDocSetIds } = useContext(NavigationContext);
+  const { docSetId, secondariesDocSetIds,questionDocSetId } = useContext(NavigationContext);
   const { pk } = useContext(ProskommaContext);
   const { colors, theme } = useContext(ColorThemeContext);
   const dropdownRef = useRef(null);
   const data = useRef(createDataArray(pk));
 
 
-
+  
   const handleChange = (item) => {
     setIsOnTop(false);
     setInComponentValue(item.value);
@@ -49,7 +49,7 @@ export default function DropDownSelectRessources({ setDocSetId, setIsOnTop }) {
           alignItems: "center", // Center content vertically
         }}
       >
-        {secondariesDocSetIds.length > 0 ? (
+        {(secondariesDocSetIds.length > 0 || questionDocSetId)? (
           <AddResourcesIcon
             color={colors.schemes[theme].primary}
             width={18}
@@ -75,7 +75,7 @@ export default function DropDownSelectRessources({ setDocSetId, setIsOnTop }) {
           {data.current.filter((e) => e.value === docSetId)[0]?.label}
         </Text>
 
-        {secondariesDocSetIds.length > 0 && (
+        {(secondariesDocSetIds.length > 0  || questionDocSetId) ? (
           <View
             style={{
               marginLeft: 8, // Space between text and badge
@@ -84,9 +84,9 @@ export default function DropDownSelectRessources({ setDocSetId, setIsOnTop }) {
               height: "100%",
             }}
           >
-            <Badge>+{secondariesDocSetIds.length}</Badge>
+            <Badge>+{secondariesDocSetIds.length + (questionDocSetId? 1:0) }</Badge>
           </View>
-        )}
+        ):<></>}
       </View>
     </TouchableRipple>
   );
@@ -147,7 +147,6 @@ function createDataArray(pk) {
       }
     }
   `);
-  console.log(response.data.docSets)
   return response.data.docSets.map((e) => ({
     label: e.tags.length > 0? e.tags[0].split(":")[1]:[e.id],
     value: e.id,

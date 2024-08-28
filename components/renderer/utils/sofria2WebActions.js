@@ -318,12 +318,13 @@ const sofria2WebActions = {
         return false;
       },
     },
+
     {
       description: "Collapse one level of paraContent Stack",
       test: ({ context, workspace, config }) => {
         return (
           !["chapter", "verses"].includes(
-            context.sequences[0].element.subType
+            context?.sequences[0]?.element?.subType
           ) && workspace.settings.showCharacterMarkup
         );
       },
@@ -493,3 +494,29 @@ const sofria2WebActions = {
 };
 
 export default sofria2WebActions;
+
+let t = {
+  document: {
+    id: "YjA2N2VlMDgt",
+    mainSequenceId: "MDQ2ZjNkOGEt",
+    metadata: { document: [Object], translation: [Object] },
+    nSequences: 2,
+    schema: {
+      constraints: [Array],
+      structure: "nested",
+      structure_version: "0.2.1",
+    },
+  },
+
+  sequences: [
+    {
+      block: [Object],
+      element: [Object],
+      id: "MDQ2ZjNkOGEt",
+      milestones: [Set],
+      nBlocks: 348,
+      type: "main",
+    },
+    {},
+  ],
+};
