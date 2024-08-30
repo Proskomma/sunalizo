@@ -351,6 +351,7 @@ const MainPage = () => {
 export default React.memo(MainPage);
 
 async function getNextChap(pk, curChap, bookCode, docSetId) {
+  console.log('isdhsjdjsjsjhds')
   try {
     const response = await pk.gqlQuery(`{
       docSet(id: "${docSetId}"){

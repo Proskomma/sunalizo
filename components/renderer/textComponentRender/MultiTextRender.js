@@ -4,6 +4,7 @@ import {
   FlatList,
   SafeAreaView,
   ScrollView,
+  TouchableOpacity,
   View,
 } from "react-native";
 import { ActivityIndicator, Badge } from "react-native-paper";
@@ -35,9 +36,7 @@ export function MultiTextRender({}) {
   const [currentVerse, setCurrentverse] = useState(1);
   const [chapterBuffer, setChapterBuffer] = useState([]);
   const [isLoadingMainText, setIsLoadingMainText] = useState(true);
-  const [isLoadingQuestion, setIsLoadingQuestion] = useState(
-    new Array(200).fill(true)
-  );
+  const [isLoadingQuestion, setIsLoadingQuestion] = useState(true);
   const [isLoadingSecondTexts, setIsLoadingSecondTexts] = useState(
     new Array(secondariesDocSetIds.length).fill(true)
   );
@@ -48,7 +47,6 @@ export function MultiTextRender({}) {
   const { colors, theme } = useContext(ColorThemeContext);
   const { width } = Dimensions.get("window");
   const [dataQuestion, setDataQuestion] = useState(new Array(200).fill([]));
-  const [questions, setQuestions] = useState(new Array(200).fill([]));
 
   const [fontFamily, setFontFamily] = useState("NotoSans");
   const styles = StyleSheet.create({
@@ -69,15 +67,19 @@ export function MultiTextRender({}) {
       alignSelf: "center",
     },
   });
+  useEffect(() => {
+    setIsLoadingMainText(true);
+    setIsLoadingQuestion(true);
+    setIsLoadingSecondTexts(new Array(secondariesDocSetIds.length).fill(true));
+  }, []);
 
   useEffect(() => {
     getTagsDocSet(secondariesDocSetIds, pk).then((e) => setDocTags(e));
   }, [secondariesDocSetIds]);
+
   useEffect(() => {
     const fetchQuestionsAsync = async () => {
       try {
-        // Start loading
-
         // Fetch verse ranges first
         const verseRangesResponse = await pk.gqlQuery(`
           {
@@ -94,80 +96,66 @@ export function MultiTextRender({}) {
             }
           }
         `);
-
-        // Extract verse ranges from the response
-        const verseRanges =
-          verseRangesResponse.data.docSet.document.cvIndex.verses
-            .map((v) => v.verse)
-            .filter((e) => e.length > 0)
-            .map((e) => e[0].verseRange);
-
-        // Fetch questions for each verse range asynchronously
-        verseRanges.forEach(async (verseRange, id) => {
-          setTimeout(async () => {
-            try {
-              pk.gqlQuery(
-                `
-              {
-                docSet(id: "${questionDocSetId}") {
-                  tags
-                  document(bookCode: "${bookCode}") {
-                    kvSequences {
-                      entries(keyMatches: "^${currentChap}:${verseRange}(-|$)") {
-                        itemGroups {
-                          text
-                          scopeLabels
-                        }
-                      }
-                    }
+  
+        let testResponse = await pk.gqlQuery(`
+          {
+            docSet(id: "${questionDocSetId}") {
+              document(bookCode: "${bookCode}") {
+                kvSequences {
+                  entries {
+                    key
                   }
                 }
               }
-            `
-              ).then((v) => {
-                setDataQuestion((prev) => {
-                  let t = v.data?.docSet?.document?.kvSequences[0].entries.map(
-                    (entry) =>
-                      entry.itemGroups
-                        .filter((itemGroup) =>
-                          itemGroup.scopeLabels.includes("kvField/question")
-                        )
-                        .map((itemGroup) => ({ text: itemGroup.text })) // Simplify the data structure for the carousel
-                  );
-
-                  // Update the state with new questions
-                  let updatedQuestions = [...prev];
-                  updatedQuestions[id] = t.flat();
-                  setIsLoadingQuestion((prevtwo) => {
-                    let p = [...prevtwo];
-                    p[id] = false;
-                    return p;
-                  });
-                  return updatedQuestions;
-                });
-              });
-            } catch (error) {
-              console.error(
-                `Error fetching questions for verse range ${verseRange}:`,
-                error
-              );
             }
-          });
+          }
+        `);
+        
+        // Convert the keys to a single string
+        const initialValue = "/";
+        testResponse = testResponse.data.docSet.document.kvSequences[0].entries
+          .map(e => e.key)
+          .reduce((accumulator, currentValue) => accumulator + currentValue + "/", initialValue);
+  
+        // Extract verse ranges
+        const verseRanges = verseRangesResponse.data.docSet.document.cvIndex.verses
+          .map(v => v.verse)
+          .filter(e => e.length > 0)
+          .map(e => e[0].verseRange);
+  
+        // Create a new array to store questions
+        let dataQuestionToBeUpdate = [...dataQuestion];
+        verseRanges.forEach((verseRange, id) => {
+          try {
+            const re = new RegExp(`/${currentChap}:${verseRange}(-|/)`);
+           
+            if (re.test(testResponse)) {
+              dataQuestionToBeUpdate[id] = [{ text: "toBeFetch", verse: verseRange }];
+            }
+           
+          } catch (error) {
+            console.error(`Error processing verse range ${verseRange}:`, error);
+          }
         });
+  
+        // Update state with new questions
+        setDataQuestion(dataQuestionToBeUpdate);
+  
       } catch (error) {
         console.error("Error fetching verse ranges:", error);
       }
-    };
+      setIsLoadingQuestion(false);
 
+    };
+  
     // Call the async function
     fetchQuestionsAsync();
+    
   }, [questionDocSetId, bookCode, currentChap]);
+  
+  const fontSizeTab = [16, 16, 22, 24, 28, 12];
+  const multiTab = [0.75, 0.88, 1, 1.15, 1.25];
 
-  useEffect(() => {
-    if (dataQuestion.length > 0) {
-      setQuestions(dataQuestion);
-    }
-  }, [dataQuestion]);
 
   const [option, setOption] = useState({
     showWordAtts: false,
@@ -183,8 +171,10 @@ export function MultiTextRender({}) {
     showFirstVerseLabel: true,
     selectedBcvNotes: [1],
     chapters: [`${currentChap}`],
-    verses: ["1"],
+    byVerseExpirimental: true,
     byVerse: false,
+    excludeScopeTypes: ["milestone/", "attribute/", "spanWithAtts/"],
+
     bcvNotesCallback: (bcv) => {},
     fontConfig: {
       fontFamily: fontFamily,
@@ -297,9 +287,8 @@ export function MultiTextRender({}) {
         ) : (
           chapterBuffer.map((main, idmain) => (
             <>
-              <View
-              >{main}</View>
-              {isLoadingQuestion[idmain] ? (
+              <View>{main}</View>
+              {isLoadingQuestion ? (
                 <>
                   <SafeAreaView
                     style={{
@@ -326,7 +315,7 @@ export function MultiTextRender({}) {
                   </SafeAreaView>
                   <ActivityIndicator />
                 </>
-              ) : questions[idmain].length > 0 ? (
+              ) : dataQuestion[idmain].length > 0 ? (
                 <SafeAreaView
                   style={{
                     borderTopLeftRadius: 28,
@@ -358,12 +347,26 @@ export function MultiTextRender({}) {
                         : questionDocSetId}
                     </Text>
                   </View>
+
                   <List.Accordion
                     style={{
                       backgroundColor:
                         colors.schemes[theme].surfaceContainerHigh,
                     }}
                     title="Questions"
+                    onPress={() => {
+                      if (dataQuestion[idmain][0].text === "toBeFetch") {
+                        fetchQuestion(
+                          pk,
+                          currentChap,
+                          dataQuestion[idmain][0].verse,
+                          questionDocSetId,
+                          bookCode,
+                          setDataQuestion,
+                          idmain
+                        );
+                      }
+                    }}
                     left={(props) => (
                       <List.Icon
                         {...props}
@@ -373,25 +376,31 @@ export function MultiTextRender({}) {
                       />
                     )}
                   >
-                    <View style={{ height: 8 }}></View>
-                    <Carousel
-                      loop={false}
-                      width={width - 48}
-                      conta
-                      style={{
-                        width: "100%",
-                        minHeight: 60,
-                        maxHeight: 500,
-                        borderBottomLeftRadius: 12,
-                        borderBottomRightRadius: 12,
-                      }}
-                      data={questions[idmain]}
-                      scrollAnimationDuration={1000} // Customize animation duration
-                      renderItem={({ item, index }) => (
-                        <View
+                    {dataQuestion[idmain][0]?.text !== "toBeFetch" ? (
+                      <>
+                        <View style={{ height: 8 }}></View>
+                        <ScrollView
+                          horizontal={true}
+                          snapToInterval={width-48}
+
+                          pagingEnabled={true}
+                          scrollEnabled={true}
+                          width={width - 48}
+                          conta
+                          style={{
+                            width: "100%",
+                            borderBottomLeftRadius: 12,
+                            borderBottomRightRadius: 12,
+                            
+                          }}
+                      
+                        >{
+                          dataQuestion[idmain].map((item,index) =>  
+                             <View
                           key={index}
                           style={{
-                            flex: 1,
+                            width:width-48,
+                            
                             justifyContent: "center",
                             gap: 8,
                             borderBottomLeftRadius: 12,
@@ -400,7 +409,9 @@ export function MultiTextRender({}) {
                         >
                           <Text
                             variant="bodyLarge"
-                            style={{ flex: 1, paddingHorizontal: 16 }}
+                            style={{ flex: 1, paddingHorizontal: 16,
+                              fontSize: 16*multiTab[textHeight] 
+                              }}
                           >
                             {item.text}
                           </Text>
@@ -413,7 +424,7 @@ export function MultiTextRender({}) {
                               gap: 8,
                             }}
                           >
-                            {questions[idmain].map((e, id) => (
+                            {dataQuestion[idmain].map((e, id) => (
                               <View
                                 key={id}
                                 style={
@@ -436,115 +447,129 @@ export function MultiTextRender({}) {
                               />
                             ))}
                           </View>
-                        </View>
-                      )}
-                    />
+                        </View>)}
+                      </ScrollView>
+                      </>
+                    ) : (
+                      <View
+                        style={{
+                          height: 100,
+                          marginRight: 48,
+                          justifyContent: "center",
+                          alignItems: "center",
+                        }}
+                      >
+                        <ActivityIndicator />
+                      </View>
+                    )}
                   </List.Accordion>
                 </SafeAreaView>
               ) : null}
 
-              {secondariesDocSetIds.length>0?
-              <ScrollView
-                horizontal={true}
-                scrollEnabled={secondariesDocSetIds.length > 1}
-                style={{ display: "flex", flexDirection: "row"}}
-              >
-                {isLoadingSecondTexts.map((e, id) =>
-                  e ? (
-                    <>
-                      <View
-                        key={id}
-                        style={{
-                          width:
-                            secondariesDocSetIds.length < 2
-                              ? width - 48
-                              : width * 0.85 - 48,
-                          flex: 1,
-                          borderBottomRightRadius: 28,
-                          borderBottomLeftRadius: 28,
-                          borderTopLeftRadius: 28,
-                          borderTopRightRadius: 28,
-                          backgroundColor:
-                            colors.schemes[theme].surfaceContainerLow,
-                          gap: 8,
-                        }}
-                      >
+              {secondariesDocSetIds.length > 0 ? (
+                <ScrollView
+                  horizontal={true}
+                  scrollEnabled={secondariesDocSetIds.length > 1}
+                  style={{ display: "flex", flexDirection: "row" }}
+                >
+                  {isLoadingSecondTexts.map((e, id) =>
+                    e ? (
+                      <>
                         <View
+                          key={id}
                           style={{
+                            width:
+                              secondariesDocSetIds.length < 2
+                                ? width - 48
+                                : width * 0.85 - 48,
+                            flex: 1,
+                            borderBottomRightRadius: 28,
+                            borderBottomLeftRadius: 28,
                             borderTopLeftRadius: 28,
                             borderTopRightRadius: 28,
-                            justifyContent: "center",
-                            paddingHorizontal: 30,
-                            height: 10,
-                            alignItems: "center", // Add this line
-                            width: "100%",
                             backgroundColor:
-                              colors.schemes[theme].tertiaryContainer,
-                          }}
-                        ></View>
-                        <View style={styles.activityContainer}>
-                          <ActivityIndicator />
-                        </View>
-                      </View>
-                      <View style={{ width: 8 }} />
-                    </>
-                  ) : multiDocIdResult[id]?(
-                    <>
-                      <View
-                        key={id}
-                        style={{
-                          width:
-                            secondariesDocSetIds.length < 2
-                              ? width - 48
-                              : width * 0.85 - 48,
-                          flex: 1,
-                          borderBottomRightRadius: 28,
-                          borderBottomLeftRadius: 28,
-                          borderTopLeftRadius: 28,
-                          borderTopRightRadius: 28,
-                          backgroundColor:
-                            colors.schemes[theme].surfaceContainerLow,
-                          gap: 8,
-                        }}
-                      >
-                        <View
-                          style={{
-                            borderTopLeftRadius: 28,
-                            borderTopRightRadius: 28,
-                            justifyContent: "center",
-                            paddingHorizontal: 30,
-                            alignItems: "center", // Add this line
-                            width: "100%",
-                            backgroundColor:
-                              colors.schemes[theme].tertiaryContainer,
+                              colors.schemes[theme].surfaceContainerLow,
+                            gap: 8,
                           }}
                         >
-                          <Text
-                            variant="labelSmall"
+                          <View
                             style={{
-                              color: colors.schemes[theme].onTertiaryContainer,
+                              borderTopLeftRadius: 28,
+                              borderTopRightRadius: 28,
+                              justifyContent: "center",
+                              paddingHorizontal: 30,
+                              height: 10,
+                              alignItems: "center", // Add this line
+                              width: "100%",
+                              backgroundColor:
+                                colors.schemes[theme].tertiaryContainer,
+                            }}
+                          ></View>
+                          <View style={styles.activityContainer}>
+                            <ActivityIndicator />
+                          </View>
+                        </View>
+                        <View style={{ width: 8 }} />
+                      </>
+                    ) : multiDocIdResult[id] ? (
+                      <>
+                        <View
+                          key={id}
+                          style={{
+                            width:
+                              secondariesDocSetIds.length < 2
+                                ? width - 48
+                                : width * 0.85 - 48,
+                            flex: 1,
+                            borderBottomRightRadius: 28,
+                            borderBottomLeftRadius: 28,
+                            borderTopLeftRadius: 28,
+                            borderTopRightRadius: 28,
+                            backgroundColor:
+                              colors.schemes[theme].surfaceContainerLow,
+                            gap: 8,
+                          }}
+                        >
+                          <View
+                            style={{
+                              borderTopLeftRadius: 28,
+                              borderTopRightRadius: 28,
+                              justifyContent: "center",
+                              paddingHorizontal: 30,
+                              alignItems: "center", // Add this line
+                              width: "100%",
+                              backgroundColor:
+                                colors.schemes[theme].tertiaryContainer,
                             }}
                           >
-                            {
-                              docTags?.data?.docSets
-                                .filter(
-                                  (t) => t.id === secondariesDocSetIds[id]
-                                )[0]
-                                ?.tags[0].split(":")[1]
-                            }
-                          </Text>
+                            <Text
+                              variant="labelSmall"
+                              style={{
+                                color:
+                                  colors.schemes[theme].onTertiaryContainer,
+                              }}
+                            >
+                              {
+                                docTags?.data?.docSets
+                                  .filter(
+                                    (t) => t.id === secondariesDocSetIds[id]
+                                  )[0]
+                                  ?.tags[0].split(":")[1]
+                              }
+                            </Text>
+                          </View>
+                          <View style={{ padding: 16, paddingTop: 0 }}>
+                            {multiDocIdResult[id][idmain]}
+                          </View>
                         </View>
-                        <View style={{ padding: 16, paddingTop: 0 }}>
-                          {multiDocIdResult[id][idmain]}
-                        </View>
-                      </View>
-                      <View style={{ width: 8 }} />
-                    </>
-                  ) : (
-                    <></>
-                  )
-                )}
-              </ScrollView>:null}
+                        <View style={{ width: 8 }} />
+                      </>
+                    ) : (
+                      <></>
+                    )
+                  )}
+                </ScrollView>
+              ) : null}
             </>
           ))
         )}
@@ -646,4 +671,52 @@ export async function getTagsDocSet(docsets, pk) {
           `;
   const documentResult = await pk.gqlQuery(documentQuery);
   return documentResult;
+}
+async function fetchQuestion(
+  pk,
+  chap,
+  verse,
+  questionDocSetId,
+  bookCode,
+  setDataQuestion,
+  id
+) {
+  pk.gqlQuery(
+    `
+    {
+          docSet(id: "${questionDocSetId}") {
+            tags
+            document(bookCode: "${bookCode}") {
+              kvSequences {
+                entries(keyMatches: "^${chap}:${verse}(-|$)"){
+                 itemGroups {
+                 scopeLabels
+            text
+          }
+                }
+              }
+            }
+          }
+        }
+  `
+  ).then((v) => {
+    setDataQuestion((prev) => {
+
+      let t = v.data?.docSet?.document?.kvSequences[0].entries
+        .map(
+          (entry) =>
+            entry.itemGroups
+              .filter((itemGroup) =>
+                itemGroup.scopeLabels.includes("kvField/question")
+              )
+              .map((itemGroup) => {
+                return({ text: itemGroup.text })}) // Simplify the data structure for the carousel
+        )
+      let p = [...prev];
+      p[id] = t.flat();
+      return p;
+    });
+  }
+
+);
 }

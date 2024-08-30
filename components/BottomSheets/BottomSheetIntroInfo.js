@@ -16,7 +16,6 @@ export default function BottomSheetIntroInfo({ docSetId, shown }) {
   const { colors, theme } = useContext(ColorThemeContext);
 
   const [introComponent, setIntroComponent] = useState(null);
-  const [introComponent2, setIntroComponent2] = useState(null)
 
   const [intro, setIntro] = useState(null);
   const [intro2 ,setIntro2] = useState(null)
@@ -51,12 +50,11 @@ export default function BottomSheetIntroInfo({ docSetId, shown }) {
   };
 
   useEffect(() => {
-    if (intro?.data?.document?.id) {
+    if (intro?.data?.document?.id && intro2?.data?.document?.id) {
       const result = renderDoc(intro, pk, option);
       const result2 = renderDoc(intro2, pk, option);
 
-      setIntroComponent(result.paras);
-      setIntroComponent2(result2.paras)
+      setIntroComponent([...result.paras,...result2.paras]);
       setLoading(false);
     } else {
       setIntroComponent(
@@ -67,9 +65,10 @@ export default function BottomSheetIntroInfo({ docSetId, shown }) {
           {i18n.t("noIntro")}
         </Text>
       );
+     
       setLoading(false);
     }
-  }, [intro]);
+  }, [intro,intro2]);
 
   useEffect(() => {
     if (docSetId) {
@@ -199,7 +198,6 @@ export default function BottomSheetIntroInfo({ docSetId, shown }) {
           }}
         >
           {introComponent}
-          {introComponent2}
         </View>
       )}
       </View>

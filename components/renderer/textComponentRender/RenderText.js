@@ -7,15 +7,16 @@ import { renderers } from "../utils/renderReactNative";
 import { ColorThemeContext } from "../../../context/colorThemeContext";
 import { StyleSheet } from "react-native";
 import { Text } from "react-native-paper";
+import { TextOptionContext } from "../../../context/textOptionContext";
 export function ReadingScreenAllBook({
   currentChap,
   setIsOnTop,
   pk,
-  fontSize,
   fontFamily,
   documentResult,
   bibleFormat,
 }) {
+  const {textHeight,setTextHeight} = useContext(TextOptionContext)
   const [chapterBuffer, setChapterBuffer] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const { colors, theme } = useContext(ColorThemeContext);
@@ -38,7 +39,7 @@ export function ReadingScreenAllBook({
     bcvNotesCallback: (bcv) => {},
     fontConfig: {
       fontFamily: fontFamily,
-      fontSize: fontSize,
+      fontSize: textHeight,
       fontColor: {
         fontText: colors.schemes[theme].onSurface,
         fontChap: colors.schemes[theme].onSurface,
@@ -72,7 +73,7 @@ export function ReadingScreenAllBook({
       byVerse: bibleFormat === "byVerse",
       fontConfig: {
         fontFamily: fontFamily,
-        fontSize: fontSize,
+        fontSize: textHeight,
         fontColor: {
           fontText: colors.schemes[theme].onSurface,
           fontChap: colors.schemes[theme].onSurface,
@@ -82,7 +83,7 @@ export function ReadingScreenAllBook({
         },
       },
     }));
-  }, [currentChap, fontSize, fontFamily, bibleFormat, theme]);
+  }, [currentChap, textHeight, fontFamily, bibleFormat, theme]);
 
   useEffect(() => {
     setIsLoading(true);

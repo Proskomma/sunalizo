@@ -8,6 +8,7 @@ const NavigationProvider = ({ children }) => {
   const [questionDocSetId,setQuestionDocSetId] = useState('')
   const [bookCode,setBookCode] = useState("MRK")
   const [currentChap, setCurrentChap] = useState(1)
+  const [ressourcesPageMode,setRessourcesPageMode] =useState('Simple')
   return (
     <NavigationContext.Provider
       value={{
@@ -21,6 +22,8 @@ const NavigationProvider = ({ children }) => {
         setBookCode:setBookCode,
         setCurrentChap:setCurrentChap,
         currentChap:currentChap,
+        ressourcesPageMode:ressourcesPageMode,
+        setRessourcesPageMode:setRessourcesPageMode
       }}
     >
       {children}

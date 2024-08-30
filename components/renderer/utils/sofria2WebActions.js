@@ -107,18 +107,19 @@ const sofria2WebActions = {
     },
   ],
 
-  endVerses: [
+  startVerses: [
     {
       description: "Set up new verse",
       test: () => true,
       action: ({ config, context, workspace, output }) => {
         if (config.byVerse) {
-          workspace.webParas.push(config.renderers.divider());
+          workspace.paraContentStack[0].content.push(
+            config.renderers.divider()
+          );
         }
       },
     },
   ],
-
   blockGraft: [
     {
       description: "Process block grafts",

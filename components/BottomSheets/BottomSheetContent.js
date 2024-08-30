@@ -7,14 +7,14 @@ import { useSharedValue } from "react-native-reanimated";
 import { useContext, useState } from "react";
 import DropDownSelectFont from "../DropDownSelectFont";
 import { ColorThemeContext } from "../../context/colorThemeContext";
+import { TextOptionContext } from "../../context/textOptionContext";
 
 export default function BottomSheetContent({
-  setFontSize,
-  setFontFamily,
   setBibleFormat,
   bibleFormat,
 }) {
-  const progress = useSharedValue(2);
+  const {textHeight,setTextHeight} = useContext(TextOptionContext)
+  const progress = useSharedValue(textHeight);
   const min = useSharedValue(0);
   const max = useSharedValue(4);
   const correspondanceTable = [0, 1, 2, 3, 4];
@@ -91,7 +91,7 @@ export default function BottomSheetContent({
               maximumTrackTintColor: colors.schemes[theme].primaryContainer,
               minimumTrackTintColor: colors.schemes[theme].primaryContainer,
             }}
-            onSlidingComplete={(e) => setFontSize(correspondanceTable[e])}
+            onSlidingComplete={(e) => setTextHeight(correspondanceTable[e])}
             renderMark={() => (
               <View
                 style={{

@@ -10,6 +10,7 @@ import {
   Button,
   Portal,
   Modal,
+  ActivityIndicator,
 } from "react-native-paper";
 import TopBarForRessources from "../../components/TopBarForRessources";
 import {
@@ -21,6 +22,7 @@ import {
   StyleSheet,
   Pressable,
   ScrollView,
+  TouchableOpacity,
 } from "react-native";
 import {
   createFileIfNotExists,
@@ -53,7 +55,7 @@ import MinusIcon from "../../assets/icons/flavorIcons/minusIcon";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { documentDirectory, readDirectoryAsync } from "expo-file-system";
 import NetInfo from "@react-native-community/netinfo";
-
+import { BackHandler } from "react-native";
 import { useRouter } from "expo-router";
 import { useMemo } from "react";
 export default function RessourcesPage() {
@@ -68,8 +70,13 @@ export default function RessourcesPage() {
     setSecondariesDocSetIds,
     setQuestionDocSetId,
     questionDocSetId,
+    ressourcesPageMode,
   } = useContext(NavigationContext);
 
+  const refMultiList = useRef(secondariesDocSetIds);
+  const refQuestions = useRef(questionDocSetId);
+  const refCurrentDoc = useRef(docSetId);
+  const [idSimpleSelect, setIdSimpleSelect] = useState(null);
   const [currentDocSetId, setCurrentDocSetId] = useState(docSetId);
   const [data, setData] = useState(createDataArray(pk));
   const [multiSelectRessourcesDocId, setMultiSelectRessourcesDocId] = useState(
@@ -80,7 +87,11 @@ export default function RessourcesPage() {
     useState(questionDocSetId);
   const multiSelectRessourceDocIdRef = useRef([]);
   const [scrollPosition, setScrollPosition] = useState({ x: 0, y: 0 });
-  const [typeSelection, setTypeSelection] = useState("Simple");
+  const [typeSelection, setTypeSelection] = useState(
+    secondariesDocSetIds.length > 0 || questionDocSetId != ""
+      ? "Multiple"
+      : "Simple"
+  );
   const scrollView = useRef(null);
   const refList = useRef(null);
   const { StatusBarManager } = NativeModules;
@@ -93,7 +104,56 @@ export default function RessourcesPage() {
   const [isConnected, setIsConnected] = useState(null);
   const [modalSupprimer, setModalSupprimer] = useState(false);
   const [ressourceToDelete, setRessourceToDelete] = useState();
+  const [modalSure, setModalSure] = useState(false);
 
+  const backAction = () => {
+    if (isInSwapMod) {
+      setIsInSwapMode(false);
+      return;
+    }
+
+    if (
+      refCurrentDoc.current === currentDocSetId &&
+      multiSelectRessourcesDocId
+        .map((e) => e.id)
+        .every((e) => refMultiList.current.includes(e)) &&
+      refQuestions.current === questionDocSetIdInComponent
+    ) {
+      router.back();
+      return;
+    } else {
+      setModalSure(false);
+    }
+  };
+
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener(
+      "hardwareBackPress",
+      backAction
+    );
+
+    return () => backHandler.remove();
+  }, [
+    isInSwapMod,
+    currentDocSetId,
+    multiSelectRessourcesDocId,
+    questionDocSetId,
+  ]);
+
+  useEffect(() => {
+    setMultiSelectTab(0);
+  }, [isInSwapMod]);
+
+  useEffect(() => {
+    if (idSimpleSelect) {
+      setTimeout(() => {
+        setSecondariesDocSetIds([]);
+        setQuestionDocSetId("");
+        setDocSetId(idSimpleSelect);
+        router.back();
+      });
+    }
+  }, [idSimpleSelect]);
   useEffect(() => {
     if (ressourceToDelete) setModalSupprimer(true);
   }, [ressourceToDelete]);
@@ -128,7 +188,7 @@ export default function RessourcesPage() {
   };
   const renderItem = useCallback(
     ({ item, drag, isActive }) => (
-      <TouchableRipple
+      <TouchableOpacity
         index={item.id}
         key={`${item.id}`}
         style={{
@@ -138,9 +198,20 @@ export default function RessourcesPage() {
         }}
         rippleColor={colors.schemes[theme].surfaceVariant}
         onPressOut={() => setScrollEnabled(true)}
-        onLongPress={() => {
-          setScrollEnabled(false);
-          if (drag) drag(); // Ensure drag is called correctly
+        disabled={!isInSwapMod}
+        onPress={() => {
+          if (isInSwapMod) {
+            setMultiSelectRessourcesDocId((prev) => {
+              multiSelectRessourceDocIdRef.current = prev;
+              let t = [...prev];
+              t[t.indexOf(item)] = data.filter(
+                (e) => e.id === currentDocSetId
+              )[0];
+              return t;
+            });
+            setCurrentDocSetId(item.id);
+            setIsInSwapMode(false);
+          }
         }}
       >
         <List.Item
@@ -154,7 +225,10 @@ export default function RessourcesPage() {
             marginHorizontal: 0,
           }}
           title={() => (
-            <Text style={{ color: colors.schemes[theme].onSurface }}>
+            <Text
+              variant="bodyLarge"
+              style={{ color: colors.schemes[theme].onSurface }}
+            >
               {item.tags[0].split(":")[1]}
             </Text>
           )}
@@ -164,28 +238,41 @@ export default function RessourcesPage() {
               {item.tags[3].split(":")[1]}
             </Text>
           )}
-          left={() => (
-            <TouchableRipple
-              borderless
-              style={{
-                height: 56,
-                width: 56,
-                borderRadius: 50,
-                flexDirection: "column",
-                justifyContent: "center",
-                alignItems: "center",
-              }}
-              onPressOut={() => setScrollEnabled(true)}
-              onPressIn={() => {
-                setScrollEnabled(false);
-                if (drag) drag();
-              }}
-            >
-              <DraggebleListItemIcon
-                color={colors.schemes[theme].onSurfaceVariant}
+          left={() =>
+            multiSelectRessourcesDocId.length > 1 ? (
+              <TouchableRipple
+                borderless
+                style={{
+                  height: 56,
+                  width: 56,
+                  borderRadius: 50,
+                  flexDirection: "column",
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+                onPressOut={() => setScrollEnabled(true)}
+                onPressIn={() => {
+                  setScrollEnabled(false);
+                  if (drag) drag();
+                }}
+              >
+                <DraggebleListItemIcon
+                  color={colors.schemes[theme].onSurfaceVariant}
+                />
+              </TouchableRipple>
+            ) : (
+              <View
+                style={{
+                  height: 56,
+                  width: 56,
+                  borderRadius: 50,
+                  flexDirection: "column",
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
               />
-            </TouchableRipple>
-          )}
+            )
+          }
           right={() => (
             <View
               style={{
@@ -223,11 +310,11 @@ export default function RessourcesPage() {
                     onPress={() => {
                       setMultiSelectRessourcesDocId((prev) => {
                         multiSelectRessourceDocIdRef.current = prev;
-
-                        return [
-                          ...prev.filter((e) => e.id != item.id),
-                          data.filter((e) => e.id === currentDocSetId)[0],
-                        ];
+                        let t = [...prev];
+                        t[t.indexOf(item)] = data.filter(
+                          (e) => e.id === currentDocSetId
+                        )[0];
+                        return t;
                       });
                       setCurrentDocSetId(item.id);
                       setIsInSwapMode(false);
@@ -258,9 +345,9 @@ export default function RessourcesPage() {
             </View>
           )}
         />
-      </TouchableRipple>
+      </TouchableOpacity>
     ),
-    [multiSelectRessourcesDocId]
+    [multiSelectRessourcesDocId, isInSwapMod]
   );
 
   useEffect(() => {
@@ -275,6 +362,7 @@ export default function RessourcesPage() {
         barStyle={theme === "dark" ? "light-content" : "dark-content"}
         backgroundColor={colors.schemes[theme].surface}
       />
+
       <PaperProvider
         theme={{
           colors: {
@@ -287,19 +375,37 @@ export default function RessourcesPage() {
         }}
       >
         <TopBarForRessources
+          functionGoBack={() => {
+            if (
+              refCurrentDoc.current === currentDocSetId &&
+              multiSelectRessourcesDocId
+                .map((e) => e.id)
+                .every((e) => refMultiList.current.includes(e)) &&
+              refQuestions.current === questionDocSetIdInComponent
+            ) {
+              router.back();
+              return;
+            } else {
+              setModalSure(true);
+            }
+          }}
           functionShow={() => {
-            router.back();
-            setSecondariesDocSetIds(
-              multiSelectRessourcesDocId.map((e) => e.id)
-            );
-            setQuestionDocSetId(questionDocSetIdInComponent);
-            setDocSetId(currentDocSetId);
+            setTimeout(() => {
+              router.back();
+              setSecondariesDocSetIds(
+                multiSelectRessourcesDocId.map((e) => e.id)
+              );
+              setQuestionDocSetId(questionDocSetIdInComponent);
+              setDocSetId(currentDocSetId);
+            });
           }}
           mode={typeSelection}
           isActive={
             multiSelectRessourcesDocId.length > 0 ||
             questionDocSetIdInComponent !== ""
           }
+          modalSure={modalSure}
+          setModalSure={setModalSure}
         >
           <GestureHandlerRootView style={{ flex: 1 }}>
             <ScrollView
@@ -367,6 +473,9 @@ export default function RessourcesPage() {
               {typeSelection === "Simple" ? (
                 <>
                   <List.Item
+                    onPress={() => {
+                      setIdSimpleSelect(currentDocSetId);
+                    }}
                     style={{
                       paddingLeft: 16,
                       paddingRight: 24,
@@ -420,20 +529,34 @@ export default function RessourcesPage() {
                         style={{
                           gap: 10,
                           marginLeft: 16,
-                          alignItems: "center",
                           display: "flex",
+                          justifyContent: "center",
+                          alignItems: "center",
                           flexDirection: "row",
                         }}
                       >
                         <Text
                           style={{
                             color: colors.schemes[theme].onSurfaceVariant,
+                            justifyContent: "center",
+                            alignItems: "center",
                           }}
                           variant="labelMedium"
                         >
                           Actuelle
                         </Text>
-                        <View style={{ width: 44, height: 48 }}></View>
+                        <View
+                          style={{
+                            width: 44,
+                            height: 48,
+                            justifyContent: "center",
+                            alignItems: "center",
+                          }}
+                        >
+                          {idSimpleSelect === currentDocSetId ? (
+                            <ActivityIndicator></ActivityIndicator>
+                          ) : null}
+                        </View>
                       </View>
                     )}
                   />
@@ -455,6 +578,11 @@ export default function RessourcesPage() {
                           e.tags.length > 0 &&
                           !e.hasTag
                       )
+                      .sort((a, b) => {
+                        return a["tags"][0]
+                          .split(":")[1]
+                          .localeCompare(b["tags"][0].split(":")[1]);
+                      })
                       .map((d, id) => (
                         <List.Item
                           key={id}
@@ -462,10 +590,7 @@ export default function RessourcesPage() {
                             setRessourceToDelete(d.id);
                           }}
                           onPress={() => {
-                            router.back();
-                            setSecondariesDocSetIds([]);
-                            setQuestionDocSetIdInComponent("");
-                            setDocSetId(d.id);
+                            setIdSimpleSelect(d.id);
                           }}
                           style={{
                             paddingLeft: 16,
@@ -507,7 +632,18 @@ export default function RessourcesPage() {
                             <View style={{ width: 56, height: 56 }}></View>
                           )}
                           right={() => (
-                            <View style={{ width: 44, height: 48 }}></View>
+                            <View
+                              style={{
+                                width: 44,
+                                height: 48,
+                                justifyContent: "center",
+                                alignItems: "center",
+                              }}
+                            >
+                              {idSimpleSelect === d.id ? (
+                                <ActivityIndicator></ActivityIndicator>
+                              ) : null}
+                            </View>
                           )}
                         />
                       ))}
@@ -533,6 +669,9 @@ export default function RessourcesPage() {
                           return true;
                         }
                         return true;
+                      })
+                      .sort((a, b) => {
+                        return a.title.localeCompare(b.title);
                       })
                       .map((d, id) => (
                         <>
@@ -593,7 +732,11 @@ export default function RessourcesPage() {
                                 alignItems: "center",
                               }}
                             >
-                              <Text>En train de telecharger</Text>
+                              <Text
+                                style={{ color: colors.schemes[theme].primary }}
+                              >
+                                téléchargement en cours...
+                              </Text>
                             </View>
                           ) : (
                             <Text></Text>
@@ -685,26 +828,23 @@ export default function RessourcesPage() {
                         >
                           Actuelle
                         </Text>
-                        {multiSelectRessourcesDocId.length != 0 ? (
-                          <IconButton
-                            size={24}
-                            style={{}}
-                            onPress={() => setIsInSwapMode((prev) => !prev)}
-                            icon={() =>
-                              isInSwapMod ? (
-                                <SwapRessourceIconSelected
-                                  color={colors.schemes[theme].primary}
-                                />
-                              ) : (
-                                <SwapRessourceIcon
-                                  color={colors.schemes[theme].primary}
-                                />
-                              )
-                            }
-                          />
-                        ) : (
-                          <View style={{ width: 44, height: 48 }}></View>
-                        )}
+
+                        <IconButton
+                          size={24}
+                          style={{}}
+                          onPress={() => setIsInSwapMode((prev) => !prev)}
+                          icon={() =>
+                            isInSwapMod ? (
+                              <SwapRessourceIconSelected
+                                color={colors.schemes[theme].primary}
+                              />
+                            ) : (
+                              <SwapRessourceIcon
+                                color={colors.schemes[theme].primary}
+                              />
+                            )
+                          }
+                        />
                       </View>
                     )}
                   />
@@ -826,57 +966,66 @@ export default function RessourcesPage() {
                       alignSelf: "stretch",
                     }}
                   >
-                    
-                    
-                      <Button
-                        onPress={() => {
-                          setMultiSelectRessourcesDocId((prev) => {
-                            multiSelectRessourceDocIdRef.current = prev;
+                    <Button
+                      onPress={() => {
+                        if (isInSwapMod) {
+                          setIsInSwapMode(false);
+                        }
+                        setMultiSelectRessourcesDocId((prev) => {
+                          multiSelectRessourceDocIdRef.current = prev;
 
-                            return [];
-                          });
-                          setVisible(true);
-                        }}
-                        
-                          style={{
-                            
-                          backgroundColor: 
-                          (multiSelectRessourcesDocId.length === 0 &&
-                            questionDocSetIdInComponent.length === 0 )?
-                            colors.schemes[theme].surfaceVariant:
-                          colors.schemes[theme].error,
-                        }}
-                        disabled={(multiSelectRessourcesDocId.length === 0 &&
-                                   questionDocSetIdInComponent.length === 0 )}
-                        icon={() => (
-                          <MinusIcon
-                            color={
-                              (multiSelectRessourcesDocId.length === 0 &&
-                                questionDocSetIdInComponent.length === 0 )?
-                                colors.schemes[theme].onSurfaceVariant:colors.schemes[theme].onError}
-                            size={18}
-                          />
-                        )}
-                        contentStyle={{
-                          height: 40,
-                          alignSelf: "stretch",
-                          paddingRight: 8,
-                          flexDirection: "row",
-                          alignItems: "center",
-                          justifyContent: "center", // Center content horizontally
+                          return [];
+                        });
+                        setQuestionDocSetIdInComponent("");
+                        setVisible(true);
+                      }}
+                      style={{
+                        backgroundColor:
+                          multiSelectRessourcesDocId.length === 0 &&
+                          questionDocSetIdInComponent.length === 0
+                            ? colors.schemes[theme].surfaceVariant
+                            : colors.schemes[theme].error,
+                      }}
+                      disabled={
+                        multiSelectRessourcesDocId.length === 0 &&
+                        questionDocSetIdInComponent.length === 0
+                      }
+                      icon={() => (
+                        <MinusIcon
+                          color={
+                            multiSelectRessourcesDocId.length === 0 &&
+                            questionDocSetIdInComponent.length === 0
+                              ? colors.stateLayers[theme].onSurfaceVariant
+                                  .opacity012
+                              : colors.schemes[theme].onError
+                          }
+                          size={18}
+                        />
+                      )}
+                      contentStyle={{
+                        height: 40,
+                        alignSelf: "stretch",
+                        paddingRight: 8,
+                        flexDirection: "row",
+                        alignItems: "center",
+                        justifyContent: "center", // Center content horizontally
+                      }}
+                    >
+                      <Text
+                        variant="labelLarge"
+                        disabled={true}
+                        style={{
+                          color:
+                            multiSelectRessourcesDocId.length === 0 &&
+                            questionDocSetIdInComponent.length === 0
+                              ? colors.stateLayers[theme].onSurfaceVariant
+                                  .opacity012
+                              : colors.schemes[theme].onError,
                         }}
                       >
-                        <Text
-                          variant="labelLarge"
-                          style={{ color: (multiSelectRessourcesDocId.length === 0 &&
-                            questionDocSetIdInComponent.length === 0 )?
-                            colors.schemes[theme].onSurfaceVariant:
-                            colors.schemes[theme].onError }}
-                        >
-                          Retirer tout
-                        </Text>
-                      </Button>
-                    
+                        Retirer tout
+                      </Text>
+                    </Button>
                   </View>
                   <Text
                     style={{
@@ -937,16 +1086,23 @@ export default function RessourcesPage() {
                         </View>
                       </TouchableRipple>
                       <TouchableRipple
+                        disabled={isInSwapMod}
                         rippleColor={
                           colors.stateLayers[theme].primary.opacity012
                         }
-                        onPress={() => setMultiSelectTab(1)}
+                        onPress={() => {
+                          setMultiSelectTab(1);
+                        }}
                         style={{
                           width: "50%",
                           height: 48,
                           justifyContent: "flex-end",
                           alignItems: "center",
                           paddingHorizontal: 16,
+                          backgroundColor: isInSwapMod
+                            ? colors.stateLayers[theme].surfaceVariant
+                                .opacity016
+                            : colors.schemes[theme].surface,
                         }}
                       >
                         <View>
@@ -956,6 +1112,9 @@ export default function RessourcesPage() {
                               color:
                                 multiSelecTab === 1
                                   ? colors.schemes[theme].primary
+                                  : isInSwapMod
+                                  ? colors.stateLayers[theme].onSurfaceVariant
+                                      .opacity016
                                   : colors.schemes[theme].onSurface,
                             }}
                             variant="titleSmall"
@@ -987,13 +1146,26 @@ export default function RessourcesPage() {
                               e.tags.length > 0 &&
                               !e.hasTag
                           )
+                          .sort((a, b) => {
+                            return a["tags"][0]
+                              .split(":")[1]
+                              .localeCompare(b["tags"][0].split(":")[1]);
+                          })
                           .map((d, id) => (
                             <List.Item
-                            
                               key={id}
                               onLongPress={() => setRessourceToDelete(d.id)}
                               onPress={() => {
                                 if (isInSwapMod) {
+                                  setMultiSelectRessourcesDocId((prev) => {
+                                    multiSelectRessourceDocIdRef.current = prev;
+                                    let t = [...prev];
+                                    t[t.indexOf(d)] = data.filter(
+                                      (e) => e.id === currentDocSetId
+                                    )[0];
+                                    return t;
+                                  });
+
                                   setCurrentDocSetId(d.id);
                                   setIsInSwapMode(false);
                                 } else {
@@ -1001,22 +1173,22 @@ export default function RessourcesPage() {
                                     multiSelectRessourceDocIdRef.current = prev;
 
                                     if (prev.some((e) => e.id === d.id)) {
-                                      setTimeout(() => {
-                                        scrollView.current.scrollTo({
-                                          x: scrollPosition.x,
-                                          y: scrollPosition.y - 84,
-                                          animated: false,
-                                        });
-                                      }, 1);
+                                      // setTimeout(() => {
+                                      //   scrollView.current.scrollTo({
+                                      //     x: scrollPosition.x,
+                                      //     y: scrollPosition.y - 84,
+                                      //     animated: false,
+                                      //   });
+                                      // }, 1);
                                       return prev.filter((e) => e.id !== d.id);
                                     } else {
-                                      setTimeout(() => {
-                                        scrollView.current.scrollTo({
-                                          x: scrollPosition.x,
-                                          y: scrollPosition.y + 84,
-                                          animated: false,
-                                        });
-                                      }, 1);
+                                      // setTimeout(() => {
+                                      //   scrollView.current.scrollTo({
+                                      //     x: scrollPosition.x,
+                                      //     y: scrollPosition.y + 84,
+                                      //     animated: false,
+                                      //   });
+                                      // }, 1);
 
                                       return [...prev, d];
                                     }
@@ -1033,10 +1205,11 @@ export default function RessourcesPage() {
                                   multiSelectRessourcesDocId.filter(
                                     (e) => e.id === d.id
                                   ).length !== 0
-                                    ? colors.stateLayers[theme].onSurfaceVariant
-                                        .opacity012
+                                    ? isInSwapMod
+                                      ? colors.schemes[theme].surface
+                                      : colors.stateLayers[theme].primary
+                                          .opacity012
                                     : colors.schemes[theme].surface,
-
                               }}
                               title={() => (
                                 <Text
@@ -1164,6 +1337,9 @@ export default function RessourcesPage() {
                                 }
                                 return true;
                               })
+                              .sort((a, b) => {
+                                return a.title.localeCompare(b.title);
+                              })
                               .map((d, id) => (
                                 <>
                                   <List.Item
@@ -1231,7 +1407,13 @@ export default function RessourcesPage() {
                                         alignItems: "center",
                                       }}
                                     >
-                                      <Text>En train de telecharger</Text>
+                                      <Text
+                                        style={{
+                                          color: colors.schemes[theme].primary,
+                                        }}
+                                      >
+                                        téléchargement en cours...
+                                      </Text>
                                     </View>
                                   ) : (
                                     <Text></Text>
@@ -1263,6 +1445,11 @@ export default function RessourcesPage() {
                               e.tags.length > 0 &&
                               e.hasTag
                           )
+                          .sort((a, b) => {
+                            return a["tags"][0]
+                              .split(":")[1]
+                              .localeCompare(b["tags"][0].split(":")[1]);
+                          })
                           .map((d, id) => (
                             <List.Item
                               key={id}
@@ -1277,12 +1464,11 @@ export default function RessourcesPage() {
                               style={{
                                 paddingLeft: 16,
                                 paddingRight: 24,
-                                backgroundColor: "red",
                                 paddingHorizontal: 8,
                                 gap: 16,
                                 backgroundColor:
                                   questionDocSetIdInComponent === d.id
-                                    ? colors.stateLayers[theme].onSurfaceVariant
+                                    ? colors.stateLayers[theme].primary
                                         .opacity012
                                     : colors.schemes[theme].surface,
                               }}
@@ -1329,60 +1515,19 @@ export default function RessourcesPage() {
                                     padding: 4,
                                   }}
                                 >
-                                  {isInSwapMod ? (
-                                    <IconButton
-                                      size={24}
-                                      style={{
-                                        margin: 0,
-                                        padding: 8,
-                                      }}
-                                      onPress={() => {
-                                        if (
-                                          multiSelectRessourcesDocId.filter(
-                                            (e) => e.id === d.id
-                                          ).length > 0
-                                        ) {
-                                          setMultiSelectRessourcesDocId(
-                                            (prev) => {
-                                              multiSelectRessourceDocIdRef.current =
-                                                prev;
-
-                                              return [
-                                                ...prev.filter(
-                                                  (e) => e.id != d.id
-                                                ),
-                                                data.filter(
-                                                  (e) =>
-                                                    e.id === currentDocSetId
-                                                )[0],
-                                              ];
-                                            }
-                                          );
-                                        }
-                                        setCurrentDocSetId(d.id);
-                                        setIsInSwapMode(false);
-                                      }}
-                                      icon={() => (
-                                        <SwapRessourceIcon
-                                          color={colors.schemes[theme].primary}
-                                        />
-                                      )}
+                                  <View
+                                    style={{
+                                      padding: 2,
+                                    }}
+                                  >
+                                    <Checkbox
+                                      status={
+                                        questionDocSetIdInComponent === d.id
+                                          ? "checked"
+                                          : "unchecked"
+                                      }
                                     />
-                                  ) : (
-                                    <View
-                                      style={{
-                                        padding: 2,
-                                      }}
-                                    >
-                                      <Checkbox
-                                        status={
-                                          questionDocSetIdInComponent === d.id
-                                            ? "checked"
-                                            : "unchecked"
-                                        }
-                                      />
-                                    </View>
-                                  )}
+                                  </View>
                                 </View>
                               )}
                             />
@@ -1408,6 +1553,9 @@ export default function RessourcesPage() {
                                 return true;
                               }
                               return true;
+                            })
+                            .sort((a, b) => {
+                              return a.title.localeCompare(b.title);
                             })
                             .map((d, id) => (
                               <>
@@ -1474,7 +1622,13 @@ export default function RessourcesPage() {
                                       alignItems: "center",
                                     }}
                                   >
-                                    <Text>En train de telecharger</Text>
+                                    <Text
+                                      style={{
+                                        color: colors.schemes[theme].primary,
+                                      }}
+                                    >
+                                      téléchargement en cours...
+                                    </Text>
                                   </View>
                                 ) : (
                                   <Text></Text>
@@ -1500,10 +1654,8 @@ export default function RessourcesPage() {
                   </View>
                 </View>
               )}
-              
             </ScrollView>
             <Portal>
-           
               <Modal
                 visible={modalSupprimer}
                 onDismiss={() => setModalSupprimer(false)}
@@ -1545,6 +1697,8 @@ export default function RessourcesPage() {
                     }}
                   >
                     <TouchableRipple
+                      style={{ borderRadius: 40 }}
+                      borderless
                       onPress={() => {
                         setModalSupprimer(false);
                       }}
@@ -1561,11 +1715,37 @@ export default function RessourcesPage() {
                       </Text>
                     </TouchableRipple>
                     <TouchableRipple
+                      style={{ borderRadius: 40 }}
+                      borderless
                       onPress={async () => {
                         deleteFileIfExists(
                           `succinct/${ressourceToDelete}.json`
                         );
                         query = `mutation { deleteDocSet(docSetId: "${ressourceToDelete}") }`;
+                        if (ressourceToDelete === questionDocSetIdInComponent) {
+                          setQuestionDocSetIdInComponent("");
+                        }
+                        if (ressourceToDelete === questionDocSetId) {
+                          setQuestionDocSetId("");
+                        }
+                        if (secondariesDocSetIds.includes(ressourceToDelete)) {
+                          setSecondariesDocSetIds((prev) => {
+                            let t = [...prev];
+                            t.splice(t.indexOf(ressourceToDelete), 1);
+                            return t;
+                          });
+                        }
+                        if (
+                          multiSelectRessourcesDocId.some(
+                            (e) => e.id === ressourceToDelete
+                          )
+                        ) {
+                          setMultiSelectRessourcesDocId((prev) => {
+                            let t = [...prev];
+                            t = t.filter((e) => e.id !== ressourceToDelete);
+                            return t;
+                          });
+                        }
                         result = await pk.gqlQuery(query);
                         setModalSupprimer(false);
                       }}
@@ -1584,10 +1764,10 @@ export default function RessourcesPage() {
                   </View>
                 </View>
                 <></>
-                
               </Modal>
               <Snackbar
                 visible={visible}
+                style={{ marginBottom: scrollPosition.y > 0 ? 88 : 16 }}
                 onDismiss={() => setVisible(false)}
                 action={{
                   label: "Annuler",

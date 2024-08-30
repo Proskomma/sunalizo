@@ -21,17 +21,21 @@ export default function ModalTextNavigation({
 }) {
   const { bookCode, setBookCode, setCurrentChap, currentChap, docSetId } =
     useContext(NavigationContext);
-
   const { colors, theme } = useContext(ColorThemeContext);
   const { pk } = useContext(ProskommaContext);
   const [book, setBook] = useState(bookCode);
   const [chapter, setChapter] = useState(currentChap);
+  const bookRef = useRef(bookCode)
   // const [verse, setVerse] = useState(1);
   const [data, setData] = useState(null);
   const [pixelNavBook, setPixelNavBook] = useState(0);
   const [pixelNavCha, setPixelNavChap] = useState(0);
   const parentScroll = useRef(null);
   const chapterScroll = useRef(null);
+
+  useEffect(()=>{
+    bookRef.current= bookCode
+  },[bookCode])
   useEffect(() => {
     setChapter(currentChap);
   }, [currentChap]);
@@ -203,7 +207,7 @@ export default function ModalTextNavigation({
                         setVisible(false);
                       }}
                       style={
-                        chapter === e.chapter
+                        chapter === e.chapter && book === bookRef.current
                           ? [
                               {
                                 backgroundColor:

@@ -1,6 +1,12 @@
-import React, { useContext, useState } from "react";
-import { View, StyleSheet,StatusBar } from "react-native";
-import { Text, Button, IconButton, Modal } from "react-native-paper";
+import React, { useContext, useEffect, useState } from "react";
+import { View, StyleSheet, StatusBar } from "react-native";
+import {
+  Text,
+  Button,
+  IconButton,
+  Modal,
+  ActivityIndicator,
+} from "react-native-paper";
 import { ColorThemeContext } from "../context/colorThemeContext";
 import { NativeModules } from "react-native";
 import ArrowReturnLeftIcon from "../assets/icons/flavorIcons/arrowReturnLeftIcon";
@@ -13,12 +19,22 @@ export default function TopBarForRessources({
   functionGoBack,
   functionShow,
   children,
+  modalSure,
+  setModalSure
 }) {
   const router = useRouter();
 
   const { colors, theme } = useContext(ColorThemeContext);
   const { StatusBarManager } = NativeModules;
-  const [modalSure, setModalSure] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (isLoading) {
+      setTimeout(() => {
+        functionShow();
+      });
+    }
+  }, [isLoading]);
   const styles = StyleSheet.create({
     titleContainer: {
       marginTop: 64 - StatusBarManager.HEIGHT,
@@ -76,45 +92,47 @@ export default function TopBarForRessources({
   return (
     <>
       <View style={styles.titleContainer}>
-      <View style={styles.topBar}>
-        <View style={styles.iconContainer}>
-          <IconButton
-            style={{
-              margin: 0,
-              alignSelf: "center",
-              width: 48,
-              height: 48,
-            }}
-            onPress={() => {
-              if (mode && isActive) {
-                setModalSure(true);
-              }
-            }}
-            icon={() => (
-              <ArrowReturnLeftIcon
-                color={colors.schemes[theme].onSurfaceVariant}
-              />
-            )}
-          />
+        <View style={styles.topBar}>
+          <View style={styles.iconContainer}>
+            <IconButton
+              style={{
+                margin: 0,
+                alignSelf: "center",
+                width: 48,
+                height: 48,
+              }}
+              onPress={() => {
+                if (mode && isActive) {
+                  functionGoBack()
+                } else {
+                  router.back();
+                }
+              }}
+              icon={() => (
+                <ArrowReturnLeftIcon
+                  color={colors.schemes[theme].onSurfaceVariant}
+                />
+              )}
+            />
+          </View>
+          <View style={styles.textContainer}>
+            <Text variant="headlineSmall">Ressources</Text>
+          </View>
+          {mode === "Multiple" ? (
+            <Button
+              onPress={() => {
+                setIsLoading(true);
+              }}
+              mode="contained"
+              contentStyle={{ height: 40,width:102 }}
+              disabled={!isActive}
+            >
+              {isLoading ? <ActivityIndicator color={colors.schemes[theme].onPrimary} /> : "Afficher"}
+            </Button>
+          ) : (
+            <></>
+          )}
         </View>
-        <View style={styles.textContainer}>
-          <Text variant="headlineSmall">Ressources</Text>
-        </View>
-        {mode === "Multiple" ? (
-          <Button
-            onPress={() => {
-              functionShow();
-            }}
-            mode="contained"
-            contentStyle={{ height: 40 }}
-            disabled={!isActive}
-          >
-            Afficher
-          </Button>
-        ) : (
-          <></>
-        )}
-      </View>
       </View>
       <Portal>
         <Modal
@@ -166,7 +184,7 @@ export default function TopBarForRessources({
               Annuler
             </Button>
             <Button
-              onPress={() => router.push("/mainPage")}
+              onPress={() => {router.back()}}
               containerStyle={{
                 paddingVertical: 12,
                 paddingHorizontal: 10,

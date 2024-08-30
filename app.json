@@ -4,7 +4,7 @@
     "name": "Sunteleo",
     "slug": "k2",
     "owner": "xenizo",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "scheme": "Sunteleo",
     "platforms": ["ios", "android"],
     "icon": "./assets/icons/adaptive-icon.png",
@@ -20,7 +20,6 @@
     },
     "android": {
       "blockedPermissions": ["android.permission.READ_EXTERNAL_STORAGE","android.permission.WRITE_EXTERNAL_STORAGE"],
-
       "adaptiveIcon": {
         "foregroundImage": "./assets/icons/adaptive-icon.png",
         "backgrondImage": "./assets/icons/IconBackground.png"
@@ -56,6 +55,6 @@
         "projectId": "3fdc3cf5-eacb-4cfb-8c75-364205249ba2"
       }
     },
-    "runtimeVersion": "0.1.0"
+    "runtimeVersion": "0.2.0"
   }
 }

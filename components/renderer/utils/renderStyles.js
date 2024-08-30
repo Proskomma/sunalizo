@@ -65,17 +65,14 @@ const renderStyles = {
       fontSize: "large",
     },
     "usfm:li": {
-      listStyleType: "disc",
       paddingLeft: "3em",
       textIndent: "-1.5em",
     },
     "usfm:li2": {
-      listStyleType: "disc",
       paddingLeft: "4.5em",
       textIndent: "-1.5em",
     },
     "usfm:li3": {
-      listStyleType: "disc",
       paddingLeft: "6em",
       textIndent: "-1.5em",
     },

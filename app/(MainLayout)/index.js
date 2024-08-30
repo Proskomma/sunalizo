@@ -57,6 +57,7 @@ export default function IndexScreen() {
           await createFolderIfNotExists(`succinct/xenizo_psle_1.json`, psle);
         }
         await infoSuccinct.map(async (e) => {
+          console.log(e)
           pk.loadSuccinctDocSet(await getContentOfFile(`succinct/${e}`));
         });
         setLanguage("fr"); // Set the language

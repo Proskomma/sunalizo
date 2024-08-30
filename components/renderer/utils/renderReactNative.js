@@ -9,6 +9,7 @@ import { Table, Cell, TableWrapper } from "react-native-reanimated-table";
 import { Text, Divider } from "react-native-paper";
 
 function getStyles(type, subType, indexForStyle, fontFamily = null) {
+  // let subTypeWithIntro = subType.split(':')[1][0] === 'i'? subType.split(':')[0]+':'+subType.split(':')[1].substring(1):subType
   if (!rs[type]) {
     throw new Error(`Unknown style type '${type}'`);
   }
@@ -90,8 +91,7 @@ function InlineElement(props) {
 
 const renderers = {
   divider: () => {
-    return <View 
-    id={'divider'} style={{ height: 1, backgroundColor:'red',width: "100%" }} />;
+    return <View style={{ height: 1, width: "100%" }} />;
   },
   text: ({ word, idWord, workspace, fontConfig }) => {
     if (fontConfig && fontConfig.fontFamily != "default") {
