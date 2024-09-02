@@ -32,7 +32,6 @@ export default function ModalTextNavigation({
   const [pixelNavCha, setPixelNavChap] = useState(0);
   const parentScroll = useRef(null);
   const chapterScroll = useRef(null);
-
   useEffect(()=>{
     bookRef.current= bookCode
   },[bookCode])
@@ -207,7 +206,7 @@ export default function ModalTextNavigation({
                         setVisible(false);
                       }}
                       style={
-                        chapter === e.chapter && book === bookRef.current
+                        parseInt(currentChap) === e.chapter && book === bookRef.current
                           ? [
                               {
                                 backgroundColor:

@@ -13,6 +13,13 @@ const renderStyles = {
       fontSize: "small",
     },
     "usfm:hangingGraft": {},
+
+    "usfm:im": {
+      fontWeight: "bold",
+      fontStyle: "italic",
+      fontSize: "xxx-large",
+      textAlign: "center",
+    },
     "usfm:imt": {
       fontWeight: "bold",
       fontStyle: "italic",

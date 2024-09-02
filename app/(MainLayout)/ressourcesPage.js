@@ -735,7 +735,7 @@ export default function RessourcesPage() {
                               <Text
                                 style={{ color: colors.schemes[theme].primary }}
                               >
-                                téléchargement en cours...
+                                Téléchargement en cours...
                               </Text>
                             </View>
                           ) : (
@@ -1412,7 +1412,7 @@ export default function RessourcesPage() {
                                           color: colors.schemes[theme].primary,
                                         }}
                                       >
-                                        téléchargement en cours...
+                                        Téléchargement en cours...
                                       </Text>
                                     </View>
                                   ) : (
@@ -1627,7 +1627,7 @@ export default function RessourcesPage() {
                                         color: colors.schemes[theme].primary,
                                       }}
                                     >
-                                      téléchargement en cours...
+                                      Téléchargement en cours...
                                     </Text>
                                   </View>
                                 ) : (

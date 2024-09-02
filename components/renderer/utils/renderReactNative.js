@@ -213,6 +213,7 @@ const renderers = {
       : "black";
 
     const tableIsViewText = [
+      
       "usfm:mt",
       "usfm:mt2",
       "usfm:mt3",
@@ -248,7 +249,7 @@ const renderers = {
                 flexDirection: "row",
                 color: color,
               },
-              key: `title_subTitle_${index}_${childIndex}`,
+              key: `title_subTitle_${index}_${childIndex}_${subType}`,
             });
           }
         );
@@ -320,7 +321,7 @@ const renderers = {
       ? fontConfig.fontColor.fontText
       : "black";
 
-    if (subType.includes("usfm:it")) {
+    if (["usfm:it","usfm:bk"].includes(subType)) {
       return (
         <View
           key={`wrapper_${id} `}
@@ -371,7 +372,7 @@ const renderers = {
               color: color,
               borderColor: color,
             },
-            key: `wrapper${index}_${childIndex}`,
+            key: `wrapper${index}_${childIndex}_${subType}`,
           });
         }
       );

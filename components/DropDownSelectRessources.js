@@ -19,7 +19,7 @@ export default function DropDownSelectRessources({ setDocSetId, setIsOnTop }) {
  
   useEffect(()=>{
     data.current = createDataArray(pk)
-  },[pk])
+  },[pk,docSetId,secondariesDocSetIds,questionDocSetId])
   const handleChange = (item) => {
     setIsOnTop(false);
     setInComponentValue(item.value);

@@ -54,7 +54,9 @@ export default function BottomSheetIntroInfo({ docSetId, shown }) {
       const result = renderDoc(intro, pk, option);
       const result2 = renderDoc(intro2, pk, option);
 
-      setIntroComponent([...result.paras,...result2.paras]);
+
+      console.log(JSON.stringify(result2.paras[0]))
+      setIntroComponent([...result.paras,,...result2.paras]);
       setLoading(false);
     } else {
       setIntroComponent(

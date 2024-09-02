@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { ActivityIndicator, Badge } from "react-native-paper";
+import { ActivityIndicator, Badge, Divider } from "react-native-paper";
 import { SofriaRenderFromProskomma } from "proskomma-json-tools";
 import sofria2WebActions from "../utils/sofria2WebActions";
 import { renderers } from "../utils/renderReactNative";
@@ -22,6 +22,8 @@ import { useMemo } from "react";
 import { NavigationContext } from "../../../context/navigationContext";
 import { ProskommaContext } from "../../../context/proskommaContext";
 import { TextOptionContext } from "../../../context/textOptionContext";
+import Markdown from "react-native-markdown-display";
+
 export function MultiTextRender({}) {
   const {
     docSetId,
@@ -33,7 +35,6 @@ export function MultiTextRender({}) {
   const { textHeight } = useContext(TextOptionContext);
   const { pk } = useContext(ProskommaContext);
   const [docTags, setDocTags] = useState();
-  const [currentVerse, setCurrentverse] = useState(1);
   const [chapterBuffer, setChapterBuffer] = useState([]);
   const [isLoadingMainText, setIsLoadingMainText] = useState(true);
   const [isLoadingQuestion, setIsLoadingQuestion] = useState(true);
@@ -96,7 +97,7 @@ export function MultiTextRender({}) {
             }
           }
         `);
-  
+
         let testResponse = await pk.gqlQuery(`
           {
             docSet(id: "${questionDocSetId}") {
@@ -110,52 +111,52 @@ export function MultiTextRender({}) {
             }
           }
         `);
-        
+
         // Convert the keys to a single string
         const initialValue = "/";
         testResponse = testResponse.data.docSet.document.kvSequences[0].entries
-          .map(e => e.key)
-          .reduce((accumulator, currentValue) => accumulator + currentValue + "/", initialValue);
-  
+          .map((e) => e.key)
+          .reduce(
+            (accumulator, currentValue) => accumulator + currentValue + "/",
+            initialValue
+          );
+
         // Extract verse ranges
-        const verseRanges = verseRangesResponse.data.docSet.document.cvIndex.verses
-          .map(v => v.verse)
-          .filter(e => e.length > 0)
-          .map(e => e[0].verseRange);
-  
+        const verseRanges =
+          verseRangesResponse.data.docSet.document.cvIndex.verses
+            .map((v) => v.verse)
+            .filter((e) => e.length > 0)
+            .map((e) => e[0].verseRange);
+
         // Create a new array to store questions
         let dataQuestionToBeUpdate = [...dataQuestion];
         verseRanges.forEach((verseRange, id) => {
           try {
             const re = new RegExp(`/${currentChap}:${verseRange}(-|/)`);
-           
+
             if (re.test(testResponse)) {
-              dataQuestionToBeUpdate[id] = [{ text: "toBeFetch", verse: verseRange }];
+              dataQuestionToBeUpdate[id] = [
+                { text: "toBeFetch", verse: verseRange },
+              ];
             }
-           
           } catch (error) {
             console.error(`Error processing verse range ${verseRange}:`, error);
           }
         });
-  
+
         // Update state with new questions
         setDataQuestion(dataQuestionToBeUpdate);
-  
       } catch (error) {
         console.error("Error fetching verse ranges:", error);
       }
       setIsLoadingQuestion(false);
-
     };
-  
+
     // Call the async function
     fetchQuestionsAsync();
-    
   }, [questionDocSetId, bookCode, currentChap]);
-  
-  const fontSizeTab = [16, 16, 22, 24, 28, 12];
-  const multiTab = [0.75, 0.88, 1, 1.15, 1.25];
 
+  const multiTab = [0.75, 0.88, 1, 1.15, 1.25];
 
   const [option, setOption] = useState({
     showWordAtts: false,
@@ -171,7 +172,7 @@ export function MultiTextRender({}) {
     showFirstVerseLabel: true,
     selectedBcvNotes: [1],
     chapters: [`${currentChap}`],
-    byVerseExpirimental: true,
+    byVerseExperimental: true,
     byVerse: false,
     excludeScopeTypes: ["milestone/", "attribute/", "spanWithAtts/"],
 
@@ -192,6 +193,7 @@ export function MultiTextRender({}) {
   });
 
   useEffect(() => {
+
     setOption((prev) => ({
       ...prev,
       chapters: [`${currentChap}`],
@@ -212,6 +214,7 @@ export function MultiTextRender({}) {
 
   useEffect(() => {
     if (docSetId) {
+
       (async () => {
         try {
           setIsLoadingMainText(true); // Start loading main text
@@ -229,7 +232,7 @@ export function MultiTextRender({}) {
         }
       })();
     }
-  }, [textHeight, theme, currentChap, docSetId]);
+  }, [option.fontConfig.fontSize, theme, currentChap, docSetId]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -274,7 +277,7 @@ export function MultiTextRender({}) {
     };
 
     fetchData();
-  }, [textHeight, theme, secondariesDocSetIds, currentChap]);
+  }, [option.fontConfig.fontSize, theme, secondariesDocSetIds, currentChap]);
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: colors.schemes[theme].surface }}
@@ -381,8 +384,7 @@ export function MultiTextRender({}) {
                         <View style={{ height: 8 }}></View>
                         <ScrollView
                           horizontal={true}
-                          snapToInterval={width-48}
-
+                          snapToInterval={width - 48}
                           pagingEnabled={true}
                           scrollEnabled={true}
                           width={width - 48}
@@ -391,64 +393,78 @@ export function MultiTextRender({}) {
                             width: "100%",
                             borderBottomLeftRadius: 12,
                             borderBottomRightRadius: 12,
-                            
-                          }}
-                      
-                        >{
-                          dataQuestion[idmain].map((item,index) =>  
-                             <View
-                          key={index}
-                          style={{
-                            width:width-48,
-                            
-                            justifyContent: "center",
-                            gap: 8,
-                            borderBottomLeftRadius: 12,
-                            borderBottomRightRadius: 12,
                           }}
                         >
-                          <Text
-                            variant="bodyLarge"
-                            style={{ flex: 1, paddingHorizontal: 16,
-                              fontSize: 16*multiTab[textHeight] 
+                          {dataQuestion[idmain].map((item, index) => (
+                            <View
+                              key={index}
+                              style={{
+                                width: width - 48,
+
+                                justifyContent: "center",
+                                gap: 8,
+                                borderBottomLeftRadius: 12,
+                                borderBottomRightRadius: 12,
                               }}
-                          >
-                            {item.text}
-                          </Text>
-                          <View
-                            style={{
-                              justifyContent: "center",
-                              width: "100%",
-                              display: "flex",
-                              flexDirection: "row",
-                              gap: 8,
-                            }}
-                          >
-                            {dataQuestion[idmain].map((e, id) => (
+                            >
+                              <Markdown
+                                style={{
+                                  body: {
+                                    flex: 1,
+                                    fontFamily: "NotoSans",
+                              
+                                    paddingHorizontal: 16,
+                                    fontSize: 16 * multiTab[textHeight],
+                                  },
+                                  stong: {
+                                    fontFamily: "NotoSansBold",
+                                  },
+                                }}
+                              >
+                                {item.text}
+                              </Markdown>
+
+                              {/* <Text
+                                variant="bodyLarge"
+                                
+                              >
+                                
+                              </Text> */}
                               <View
-                                key={id}
-                                style={
-                                  id === index
-                                    ? {
-                                        width: 12,
-                                        height: 4,
-                                        borderRadius: 4,
-                                        backgroundColor:
-                                          colors.schemes[theme].primary,
-                                      }
-                                    : {
-                                        width: 4,
-                                        height: 4,
-                                        borderRadius: 4,
-                                        backgroundColor:
-                                          colors.schemes[theme].primary,
-                                      }
-                                }
-                              />
-                            ))}
-                          </View>
-                        </View>)}
-                      </ScrollView>
+                                style={{
+                                  justifyContent: "center",
+                                  width: "100%",
+                                  display: "flex",
+                                  flexDirection: "row",
+                                  gap: 8,
+                                }}
+                              >
+                                {dataQuestion[idmain].map((e, id) => (
+                                  <View
+                                    key={id}
+                                    style={
+                                      id === index
+                                        ? {
+                                            width: 12,
+                                            height: 4,
+                                            borderRadius: 4,
+                                            backgroundColor:
+                                              colors.schemes[theme].primary,
+                                          }
+                                        : {
+                                            width: 4,
+                                            height: 4,
+                                            borderRadius: 4,
+                                            backgroundColor:
+                                              colors.schemes[theme].primary,
+                                          }
+                                    }
+                                  />
+                                ))}
+                              </View>
+                            </View>
+                          ))}
+                        </ScrollView>
                       </>
                     ) : (
                       <View
@@ -469,6 +485,7 @@ export function MultiTextRender({}) {
               {secondariesDocSetIds.length > 0 ? (
                 <ScrollView
                   horizontal={true}
+                  showsHorizontalScrollIndicator={false}
                   scrollEnabled={secondariesDocSetIds.length > 1}
                   style={{ display: "flex", flexDirection: "row" }}
                 >
@@ -570,6 +587,16 @@ export function MultiTextRender({}) {
                   )}
                 </ScrollView>
               ) : null}
+              {idmain === chapterBuffer.length - 1 ? (
+                <></>
+              ) : (
+                <Divider
+                  style={{
+                    height: 2,
+                    backgroundColor: colors.schemes[theme].outlineVariant,
+                  }}
+                />
+              )}
             </>
           ))
         )}
@@ -701,22 +728,19 @@ async function fetchQuestion(
   `
   ).then((v) => {
     setDataQuestion((prev) => {
-
-      let t = v.data?.docSet?.document?.kvSequences[0].entries
-        .map(
-          (entry) =>
-            entry.itemGroups
-              .filter((itemGroup) =>
-                itemGroup.scopeLabels.includes("kvField/question")
-              )
-              .map((itemGroup) => {
-                return({ text: itemGroup.text })}) // Simplify the data structure for the carousel
-        )
+      let t = v.data?.docSet?.document?.kvSequences[0].entries.map(
+        (entry) =>
+          entry.itemGroups
+            .filter((itemGroup) =>
+              itemGroup.scopeLabels.includes("kvField/question")
+            )
+            .map((itemGroup) => {
+              return { text: itemGroup.text };
+            }) // Simplify the data structure for the carousel
+      );
       let p = [...prev];
       p[id] = t.flat();
       return p;
     });
-  }
-
-);
+  });
 }
