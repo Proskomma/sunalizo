@@ -60,6 +60,7 @@ function InlineElement(props) {
           borderRadius: 4,
           width: "80%",
           flexDirection: "row",
+          ...props.style,
         }}
         onPress={toggleDisplay}
       >
@@ -69,19 +70,17 @@ function InlineElement(props) {
   } else {
     return (
       <Text
+        onPress={toggleDisplay}
         key={`Inline_${Math.random()}`}
         style={{
-          verticalAlign: "top",
-          fontSize: 10,
           fontWeight: "bold",
-          marginRight: 4,
-          marginLeft: 4,
-          marginTop: 15,
-          padding: 2,
           color: color,
+          padding: 5,
+          marginLeft:3,
+          marginRight:3,
           backgroundColor: backgroundColor,
+          ...props.style,
         }}
-        onPress={toggleDisplay}
       >
         {props.linkText}
       </Text>
@@ -213,7 +212,6 @@ const renderers = {
       : "black";
 
     const tableIsViewText = [
-      
       "usfm:mt",
       "usfm:mt2",
       "usfm:mt3",
@@ -321,7 +319,7 @@ const renderers = {
       ? fontConfig.fontColor.fontText
       : "black";
 
-    if (["usfm:it","usfm:bk"].includes(subType)) {
+    if (["usfm:it", "usfm:bk"].includes(subType)) {
       return (
         <View
           key={`wrapper_${id} `}

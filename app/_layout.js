@@ -7,7 +7,9 @@ import * as SplashScreen from "expo-splash-screen";
 import { TextOptionProvider } from "../context/textOptionContext";
 
 SplashScreen.preventAutoHideAsync();
-//eas build -p android --profile preview
+//eas build -p android --profile preview for .apk
+//eas build -p android  for .aab
+
 
 export default function RootLayout() {
   return (
